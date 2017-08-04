@@ -89,7 +89,7 @@ export async function processJudgement(
             }
             if (currentResult.cases.some(c => c.status === TaskStatus.Failed)) {
                 // If any testcase has failed, the score is invaild.
-                currentResult.score = -1;
+                currentResult.score = NaN;
             } else {
                 currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
             }

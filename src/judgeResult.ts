@@ -1,4 +1,5 @@
 import _ = require('lodash');
+import winston = require('winston');
 
 export interface JudgeResultSubmit {
     taskId: number;
@@ -37,6 +38,7 @@ export function firstNonAC(t: TaskResult[]): TaskResult {
 }
 
 export function convertResult(id: number, source: JudgeResult): JudgeResultSubmit {
+    winston.debug(`Converting result for ${id}`, source);
     let time = -1,
         memory = -1,
         score = 0,
@@ -45,26 +47,33 @@ export function convertResult(id: number, source: JudgeResult): JudgeResultSubmi
 
     if (source.compileStatus === TaskStatus.Failed) {
         statusString = compileError;
+        score = 0;
     } else if (source.error != null) {
         done = false;
-        score = -1;
+        score = NaN;
         if (source.error === ErrorType.TestDataError) {
             statusString = testdataError;
         } else {
             statusString = systemError;
         }
     } else if (source.subtasks != null) {
-        if (source.subtasks.some(s => s.score === -1)) {
-            score = -1;
+        if (source.subtasks.some(s => s.score === NaN)) {
+            score = NaN;
             statusString = systemError;
         } else {
-            const finalResult = firstNonAC(source.subtasks.map(s => firstNonAC(s.cases.filter(c => c.result != null).map(c => c.result.type))));
-            statusString = statusToString[finalResult];
             score = _.sum(source.subtasks.map(s => s.score));
+
+            const forEveryTestcase = function <TParam>(map: (v: TestCaseDetails) => TParam, reduce: (v: TParam[]) => TParam): TParam {
+                return reduce(source.subtasks.map(s => reduce(s.cases.filter(c => c.result != null).map(c => map(c.result)))));
+            }
+            time = forEveryTestcase(c => c.time, _.sum);
+            memory = forEveryTestcase(c => c.memory, _.max);
+            const finalResult = forEveryTestcase(c => c.type, firstNonAC);
+            statusString = statusToString[finalResult];
         }
     }
 
-    return {
+    const result = {
         taskId: id,
         time: time,
         memory: memory,
@@ -73,4 +82,6 @@ export function convertResult(id: number, source: JudgeResult): JudgeResultSubmi
         statusString: statusString,
         result: JSON.stringify(source)
     };
+    winston.debug(`Result for ${id}`, result);
+    return result;
 }
