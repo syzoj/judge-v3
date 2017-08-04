@@ -80,7 +80,7 @@ export function filterPath(src: string): string {
 
 
 // By Pisces
-function extractNumerals(s: string): Number[] {
+function extractNumerals(s: string): number[] {
     return (s.match(/\d+/g) || []).map((x) => parseInt(x));
 }
 
