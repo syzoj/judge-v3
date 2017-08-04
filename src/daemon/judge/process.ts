@@ -91,7 +91,7 @@ export async function processJudgement(
                 // If any testcase has failed, the score is invaild.
                 currentResult.score = -1;
             } else {
-                currentResult.score = calculateSubtaskScore(currentTask.score, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
+                currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
             }
             winston.verbose(`Subtask ${subtaskIndex}, finished`);
         })());
