@@ -17,11 +17,12 @@ export async function assertProgressReportExchange(channel: amqp.Channel) {
 }
 
 export async function assertResultReportQueue(channel: amqp.Channel) {
-    await channel.assertQueue(resultReportQueueName);
+    await channel.assertQueue(resultReportQueueName, { durable: true });
 }
 
 export async function assertJudgeQueue(channel: amqp.Channel) {
     await channel.assertQueue(judgeQueueName, {
-        maxPriority: maxPriority
+        maxPriority: maxPriority,
+        durable: true
     });
 }

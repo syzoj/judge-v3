@@ -5,32 +5,16 @@ import bodyParser = require('body-parser');
 import Bluebird = require('bluebird');
 import url = require('url');
 import rp = require('request-promise');
+import winston = require('winston');
 
 import { globalConfig as Cfg } from './config';
-import { connect, pushTask, waitForResult } from './rmq';
+import { connect, waitForResult } from './rmq';
 import { convertResult } from '../judgeResult';
+import taskRouter from './taskRouter';
 
 const app = express();
 app.use(bodyParser.json());
-app.use((req, res, next) => {
-    if (req.get('Token') !== Cfg.token) {
-        return res.status(403).send('Incorrect token');
-    } else {
-        next();
-    }
-});
-
-app.post('/task', (req, res) => {
-    if (!req.body) {
-        return res.sendStatus(400);
-    }
-    try {
-        pushTask(req.body);
-        return res.status(200).send('OK');
-    } catch (err) {
-        return res.status(500).send(err.toString());
-    }
-});
+app.use('/daemon', taskRouter);
 
 (async () => {
     await connect();

@@ -29,7 +29,7 @@ export const globalConfig: ConfigStructure = {
 }
 
 if (options.verbose) {
-    winston.transports.Console.level = 'verbose';
+    (winston as any).level = 'debug';
 } else {
-    winston.transports.Console.level = 'warn';
+    (winston as any).level = 'warn';
 }

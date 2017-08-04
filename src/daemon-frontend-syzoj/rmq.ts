@@ -53,3 +53,20 @@ export async function waitForResult(handle: (result: ProgressReportData) => Prom
         });
     });
 }
+
+export async function waitForProgress(handle: (result: ProgressReportData) => Promise<void>) {
+    const channel = await newChannel();
+    channel.prefetch(1);
+    await channel.consume(rmqCommon.resultReportQueueName, (msg: amqp.Message) => {
+        winston.info(`Got result from queue`);
+        (async () => {
+            const data = msgpack.decode(msg.content);
+            await handle(data);
+        })().then(async () => {
+            channel.ack(msg);
+        }, async (err) => {
+            winston.warn(`Failed to process message ${err.toString()}, try again`);
+            setTimeout(() => { channel.nack(msg, false, true) }, 500);
+        });
+    });
+}

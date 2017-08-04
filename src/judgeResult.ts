@@ -8,7 +8,7 @@ export interface JudgeResultSubmit {
     score: number;
     statusNumber: number;
     statusString: string;
-    result: string;
+    result: JudgeResult;
 }
 
 import { JudgeResult, TaskResult, TaskStatus, ErrorType, SubtaskResult, TestCaseResult, TestCaseDetails } from './interfaces';
@@ -80,7 +80,7 @@ export function convertResult(id: number, source: JudgeResult): JudgeResultSubmi
         score: score,
         statusNumber: done ? TaskStatus.Done : TaskStatus.Failed,
         statusString: statusString,
-        result: JSON.stringify(source)
+        result: source
     };
     winston.debug(`Result for ${id}`, result);
     return result;
