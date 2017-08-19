@@ -29,7 +29,7 @@ export async function pushBinary(name: string, language: Language, code: string,
         language: language.name,
         code: code
     };
-    await putRedis(name + redisBinarySuffix, msgpack.encode(binary));
+    await putRedis(name + redisBinarySuffix, binary);
     await putRedis(name + redisMetadataSuffix, msgpack.encode(data));
 }
 
@@ -57,6 +57,7 @@ export async function fetchBinary(name: string): Promise<[string, Language, stri
                 winston.debug(`Doing work: fetching binary for ${name} ...`);
                 await fse.mkdir(targetName);
                 const binary = msgpack.decode(await getRedis(name + redisBinarySuffix));
+                winston.debug(`Decompressing binary (size=${binary.length})...`);
                 await new Promise((res, rej) => {
                     const s = tar.extract({
                         cwd: targetName

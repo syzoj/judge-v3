@@ -1,6 +1,7 @@
-import * as commandLineArgs from 'command-line-args';
-import * as fs from 'fs';
-import * as winston from 'winston';
+import commandLineArgs = require('command-line-args');
+import fs = require('fs');
+import winston = require('winston');
+import { configureWinston } from '../winston-common';
 
 export interface SandboxConfigBase {
     chroot: string;
@@ -69,8 +70,4 @@ export const globalConfig: ConfigStructure = {
     },
 }
 
-if (options.verbose) {
-    (winston as any).level = 'debug';
-} else {
-    (winston as any).level = 'warn';
-}
+configureWinston(options.verbose);

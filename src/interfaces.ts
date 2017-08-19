@@ -17,8 +17,8 @@ export interface CompileTask {
     binaryName: string;
 }
 
-export interface TestCaseDetails {
-    type: TaskResult;
+export interface TestcaseDetails {
+    type: TestcaseResultType;
     time: number;
     memory: number;
     input: FileContent;
@@ -30,15 +30,16 @@ export interface TestCaseDetails {
     systemMessage: string;
 };
 
-export interface TestCaseResult {
+export interface TestcaseResult {
     status: TaskStatus;
-    result?: TestCaseDetails;
+    result?: TestcaseDetails;
     errorMessage?: string;
 }
 
 export interface SubtaskResult {
+    status: TaskStatus;
     score?: number;
-    cases: TestCaseResult[];
+    cases: TestcaseResult[];
 }
 
 export enum ErrorType {
@@ -46,12 +47,21 @@ export enum ErrorType {
     TestDataError
 }
 
+export interface CompilationResult {
+    status: TaskStatus;
+    message?: string;
+}
+
 export interface JudgeResult {
-    error?: ErrorType;
-    compileStatus?: TaskStatus;
+    status: TaskStatus;
     subtasks?: SubtaskResult[];
-    compilerMessage?: string;
+}
+
+export interface OverallResult {
+    error?: ErrorType;
     systemMessage?: string;
+    compile?: CompilationResult;
+    judge?: JudgeResult;
 }
 
 export interface StandardRunResult {
@@ -62,7 +72,7 @@ export interface StandardRunResult {
     scoringRate: number;
     spjMessage: string;
     systemMessage: string;
-    result: TaskResult;
+    result: TestcaseResultType;
 }
 
 export interface StandardRunTask {
@@ -85,7 +95,7 @@ export enum TaskStatus {
     Skipped = 4
 }
 
-export enum TaskResult {
+export enum TestcaseResultType {
     Accepted = 1,
     WrongAnswer,
     PartiallyCorrect,
@@ -96,12 +106,6 @@ export enum TaskResult {
     RuntimeError,
     JudgementFailed, // Special Judge or Interactor fails
     InvalidInteraction
-}
-
-export interface CompileResult {
-    // -1: Run failed, 0: OK, others: Compilation Error
-    status: number;
-    message?: string;
 }
 
 export interface FileContent {
@@ -117,14 +121,15 @@ export enum RPCReplyType {
 
 export enum ProgressReportType {
     Started = 1,
-    Progress = 2,
-    Finished = 3
+    Compiled = 2,
+    Progress = 3,
+    Finished = 4,
 }
 
 export interface ProgressReportData {
     taskId: number;
     type: ProgressReportType;
-    progress: JudgeResult;
+    progress: OverallResult | CompilationResult;
 }
 
 export interface RPCReply {

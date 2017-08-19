@@ -1,4 +1,5 @@
 import express = require('express');
+import winston = require('winston');
 
 import { globalConfig as Cfg } from './config';
 import { pushTask } from './rmq';
@@ -18,6 +19,7 @@ taskRouter.put('/task', (req, res) => {
         return res.sendStatus(400);
     }
     try {
+        winston.info("Got task: " + req.body);
         pushTask(req.body);
         return res.status(200).send('OK');
     } catch (err) {

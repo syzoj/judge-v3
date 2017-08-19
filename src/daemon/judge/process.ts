@@ -1,5 +1,5 @@
-import { TestData, StandardJudgeParameter, SubtaskJudge, TestCaseJudge, SubtaskScoringType } from '../interfaces';
-import { SubtaskResult, TestCaseDetails, TaskStatus, TestCaseResult, JudgeResult } from '../../interfaces';
+import { TestData, StandardJudgeParameter, SubtaskJudge, TestcaseJudge, SubtaskScoringType } from '../interfaces';
+import { SubtaskResult, TestcaseDetails, TaskStatus, TestcaseResult, JudgeResult } from '../../interfaces';
 import { globalConfig as Cfg } from '../config';
 import winston = require('winston');
 import _ = require('lodash');
@@ -19,12 +19,13 @@ function calculateSubtaskScore(scoring: SubtaskScoringType, scores: number[]): n
 export async function processJudgement(
     subtasks: SubtaskJudge[],
     reportProgress: (r: SubtaskResult[]) => Promise<void>,
-    judgeTestCase: (curCase: TestCaseJudge, started: () => Promise<void>) => Promise<TestCaseDetails>,
+    judgeTestcase: (curCase: TestcaseJudge, started: () => Promise<void>) => Promise<TestcaseDetails>,
 ): Promise<SubtaskResult[]> {
     const results: SubtaskResult[] = subtasks.map(t => ({
         cases: t.cases.map(j => ({
             status: TaskStatus.Waiting
-        }))
+        })),
+        status: TaskStatus.Waiting
     }));
     winston.debug(`Totally ${results.length} subtasks.`);
 
@@ -45,8 +46,9 @@ export async function processJudgement(
                         winston.verbose(`Judging ${subtaskIndex}, case ${index}.`);
                         let score = 0;
                         try {
-                            const taskJudge = await judgeTestCase(currentTask.cases[index], async () => {
+                            const taskJudge = await judgeTestcase(currentTask.cases[index], async () => {
                                 currentTaskResult.status = TaskStatus.Running;
+                                currentResult.status = TaskStatus.Running;
                                 await reportProgress(results);
                             });
                             currentTaskResult.status = TaskStatus.Done;
@@ -72,8 +74,9 @@ export async function processJudgement(
                         const currentTaskResult = currentResult.cases[index];
                         winston.verbose(`Judging ${subtaskIndex}, case ${index}.`);
                         try {
-                            currentTaskResult.result = await judgeTestCase(currentTask.cases[index], async () => {
+                            currentTaskResult.result = await judgeTestcase(currentTask.cases[index], async () => {
                                 currentTaskResult.status = TaskStatus.Running;
+                                currentResult.status = TaskStatus.Running;
                                 await reportProgress(results);
                             });
                             currentTaskResult.status = TaskStatus.Done;
@@ -90,8 +93,10 @@ export async function processJudgement(
             if (currentResult.cases.some(c => c.status === TaskStatus.Failed)) {
                 // If any testcase has failed, the score is invaild.
                 currentResult.score = NaN;
+                currentResult.status = TaskStatus.Failed;
             } else {
                 currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
+                currentResult.status = TaskStatus.Done;
             }
             winston.verbose(`Subtask ${subtaskIndex}, finished`);
         })());

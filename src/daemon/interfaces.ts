@@ -1,5 +1,5 @@
 import { Language } from '../languages';
-import { FileContent, TaskStatus, TaskResult } from '../interfaces';
+import { FileContent, TaskStatus, TestcaseResult } from '../interfaces';
 
 export enum ProblemType {
     Standard = 1,
@@ -41,7 +41,7 @@ export enum SubtaskScoringType {
     Multiple
 }
 
-export interface TestCaseJudge {
+export interface TestcaseJudge {
     input?: string;
     output?: string;
     userOutputFile?: string;
@@ -51,7 +51,7 @@ export interface TestCaseJudge {
 export interface SubtaskJudge {
     type: SubtaskScoringType;
     score: number;
-    cases: TestCaseJudge[];
+    cases: TestcaseJudge[];
 }
 
 export interface Executable {

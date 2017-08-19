@@ -36,33 +36,17 @@ async function newChannel(): Promise<amqp.Channel> {
 }
 
 export async function waitForTask(handle: (task: JudgeTask) => Promise<void>) {
-    const channel = await newChannel();
-    channel.prefetch(1);
-    await channel.consume(rmqCommon.judgeQueueName, (msg: amqp.Message) => {
-        const messageId = msg.properties.messageId;
-        winston.info(`Got judge task`);
-        (async () => {
-            const data = msgpack.decode(msg.content) as JudgeTask;
-            winston.debug(`Data: ${util.inspect(data)}`);
-            await handle(data);
-        })().then(async () => {
-            channel.ack(msg);
-        }, async (err) => {
-            // Do not requeue it.
-            winston.warn(`Failed to process message ${messageId}: ${err.toString()}`);
-            channel.nack(msg, false, false);
-        });
-    }, {
-            priority: Cfg.priority
-        });
+    await rmqCommon.waitForTask(amqpConnection, rmqCommon.judgeQueueName, Cfg.priority, () => false, handle);
 }
 
 export async function reportProgress(data: ProgressReportData) {
+    winston.verbose('Reporting progress', data);
     const payload = msgpack.encode(data);
     publicChannel.publish(rmqCommon.progressExchangeName, '', payload);
 }
 
 export async function reportResult(data: ProgressReportData) {
+    winston.verbose('Reporting result', data);
     const payload = msgpack.encode(data);
     publicChannel.sendToQueue(rmqCommon.resultReportQueueName, payload);
 }

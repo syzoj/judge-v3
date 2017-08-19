@@ -1,5 +1,6 @@
 import _ = require('lodash');
 import winston = require('winston');
+import { JudgeResult, OverallResult, TestcaseResultType, TaskStatus, ErrorType, SubtaskResult, TestcaseResult, TestcaseDetails } from './interfaces';
 
 export interface JudgeResultSubmit {
     taskId: number;
@@ -8,36 +9,34 @@ export interface JudgeResultSubmit {
     score: number;
     statusNumber: number;
     statusString: string;
-    result: JudgeResult;
+    result: OverallResult;
 }
-
-import { JudgeResult, TaskResult, TaskStatus, ErrorType, SubtaskResult, TestCaseResult, TestCaseDetails } from './interfaces';
 
 const compileError = "Compile Error",
     systemError = "System Error",
     testdataError = "No Testdata";
 
 export const statusToString = {};
-statusToString[TaskResult.Accepted] = "Accepted";
-statusToString[TaskResult.WrongAnswer] = "Wrong Answer";
-statusToString[TaskResult.PartiallyCorrect] = "Partially Correct";
-statusToString[TaskResult.MemoryLimitExceeded] = "Memory Limit Exceeded";
-statusToString[TaskResult.TimeLimitExceeded] = "Time Limit Exceeded";
-statusToString[TaskResult.OutputLimitExceeded] = "Output Limit Exceeded";
-statusToString[TaskResult.RuntimeError] = "Runtime Error";
-statusToString[TaskResult.FileError] = "File Error";
-statusToString[TaskResult.JudgementFailed] = "Judgement Failed";
-statusToString[TaskResult.InvalidInteraction] = "Invalid Interaction";
+statusToString[TestcaseResultType.Accepted] = "Accepted";
+statusToString[TestcaseResultType.WrongAnswer] = "Wrong Answer";
+statusToString[TestcaseResultType.PartiallyCorrect] = "Partially Correct";
+statusToString[TestcaseResultType.MemoryLimitExceeded] = "Memory Limit Exceeded";
+statusToString[TestcaseResultType.TimeLimitExceeded] = "Time Limit Exceeded";
+statusToString[TestcaseResultType.OutputLimitExceeded] = "Output Limit Exceeded";
+statusToString[TestcaseResultType.RuntimeError] = "Runtime Error";
+statusToString[TestcaseResultType.FileError] = "File Error";
+statusToString[TestcaseResultType.JudgementFailed] = "Judgement Failed";
+statusToString[TestcaseResultType.InvalidInteraction] = "Invalid Interaction";
 
-export function firstNonAC(t: TaskResult[]): TaskResult {
-    if (t.every(v => v === TaskResult.Accepted)) {
-        return TaskResult.Accepted
+export function firstNonAC(t: TestcaseResultType[]): TestcaseResultType {
+    if (t.every(v => v === TestcaseResultType.Accepted)) {
+        return TestcaseResultType.Accepted
     } else {
-        return t.find(r => r !== TaskResult.Accepted);
+        return t.find(r => r !== TestcaseResultType.Accepted);
     }
 }
 
-export function convertResult(id: number, source: JudgeResult): JudgeResultSubmit {
+export function convertResult(id: number, source: OverallResult): JudgeResultSubmit {
     winston.debug(`Converting result for ${id}`, source);
     let time = -1,
         memory = -1,
@@ -45,7 +44,7 @@ export function convertResult(id: number, source: JudgeResult): JudgeResultSubmi
         done = true,
         statusString = null;
 
-    if (source.compileStatus === TaskStatus.Failed) {
+    if (source.compile && source.compile.status === TaskStatus.Failed) {
         statusString = compileError;
         score = 0;
     } else if (source.error != null) {
@@ -56,21 +55,24 @@ export function convertResult(id: number, source: JudgeResult): JudgeResultSubmi
         } else {
             statusString = systemError;
         }
-    } else if (source.subtasks != null) {
-        if (source.subtasks.some(s => s.score === NaN)) {
+    } else if (source.judge != null && source.judge.subtasks != null) {
+        if (source.judge.subtasks.some(s => s.status === TaskStatus.Failed)) {
+            winston.debug(`Some subtasks failed, returning system error`);
             score = NaN;
             statusString = systemError;
         } else {
-            score = _.sum(source.subtasks.map(s => s.score));
+            score = _.sum(source.judge.subtasks.map(s => s.score));
 
-            const forEveryTestcase = function <TParam>(map: (v: TestCaseDetails) => TParam, reduce: (v: TParam[]) => TParam): TParam {
-                return reduce(source.subtasks.map(s => reduce(s.cases.filter(c => c.result != null).map(c => map(c.result)))));
+            const forEveryTestcase = function <TParam>(map: (v: TestcaseDetails) => TParam, reduce: (v: TParam[]) => TParam): TParam {
+                return reduce(source.judge.subtasks.map(s => reduce(s.cases.filter(c => c.result != null).map(c => map(c.result)))));
             }
             time = forEveryTestcase(c => c.time, _.sum);
             memory = forEveryTestcase(c => c.memory, _.max);
             const finalResult = forEveryTestcase(c => c.type, firstNonAC);
             statusString = statusToString[finalResult];
         }
+    } else {
+        statusString = systemError;
     }
 
     const result = {

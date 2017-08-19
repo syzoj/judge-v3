@@ -3,7 +3,7 @@ import fse = require('fs-extra');
 import pathLib = require('path');
 import { Language, languages, getLanguage } from '../languages';
 import { compareStringByNumber, tryReadFile, filterPath } from '../utils';
-import { SubtaskScoringType, SubtaskJudge, TestCaseJudge, Executable, TestData } from './interfaces';
+import { SubtaskScoringType, SubtaskJudge, TestcaseJudge, Executable, TestData } from './interfaces';
 import { FileContent } from '../interfaces';
 import { globalConfig as Cfg } from './config';
 

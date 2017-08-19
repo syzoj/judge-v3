@@ -4,7 +4,7 @@ import randomString = require('randomstring');
 import bluebird = require('bluebird');
 import getFolderSize = require('get-folder-size');
 
-import { CompileTask, CompileResult } from '../interfaces';
+import { CompileTask, CompilationResult, TaskStatus } from '../interfaces';
 import { globalConfig as Cfg } from './config';
 import { sandboxize, createOrEmptyDir, setWriteAccess } from './utils';
 import { Language, getLanguage } from '../languages';
@@ -15,7 +15,7 @@ import { pushBinary } from './executable';
 
 const getSize: any = bluebird.promisify(getFolderSize);
 
-export async function compile(task: CompileTask): Promise<CompileResult> {
+export async function compile(task: CompileTask): Promise<CompilationResult> {
     const srcDir = pathLib.join(Cfg.workingDirectory, `src`);
     const binDir = pathLib.join(Cfg.workingDirectory, `bin`);
     const tempDir = pathLib.join(Cfg.workingDirectory, 'temp');
@@ -68,25 +68,25 @@ export async function compile(task: CompileTask): Promise<CompileResult> {
                 // If the output is too long
                 if (outputSize > language.binarySizeLimit) {
                     return {
-                        status: -1,
+                        status: TaskStatus.Failed,
                         message: `Your source code compiled to ${outputSize} bytes which is too big, too thick, too long for us..`
                     };
                 } // Else OK!
             } else { // If compilation error
                 return {
-                    status: sandboxResult.code,
-                    message: await readFileLength(binDir + '/' + compileConfig.messageFile, Cfg.compilerMessageLimit)
+                    status: TaskStatus.Failed,
+                    message: await readFileLength(pathLib.join(binDir, compileConfig.messageFile), Cfg.compilerMessageLimit)
                 };
             }
         } else {
             return {
-                status: -1,
+                status: TaskStatus.Failed,
                 message: (`A ${SandboxStatus[sandboxResult.status]} encountered while compiling your code.\n\n` + await readFileLength(binDir + '/' + compileConfig.messageFile, Cfg.compilerMessageLimit)).trim()
             };
         }
 
         await pushBinary(task.binaryName, language, task.code, binDir);
-        return { status: 0 };
+        return { status: TaskStatus.Done };
     } finally {
         await Promise.all([fse.remove(binDir), fse.remove(srcDir)]);
     }

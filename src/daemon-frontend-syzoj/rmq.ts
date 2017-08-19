@@ -5,6 +5,7 @@ import winston = require('winston');
 import util = require('util');
 import { cleanUp } from './cleanup';
 import * as rmqCommon from '../rmq-common';
+import requestErrors = require('request-promise/errors');
 import { JudgeResult, ProgressReportData } from '../interfaces';
 
 let amqpConnection: amqp.Connection;
@@ -17,6 +18,7 @@ export async function connect() {
     publicChannel = await newChannel();
     await rmqCommon.assertJudgeQueue(publicChannel);
     await rmqCommon.assertResultReportQueue(publicChannel);
+    await rmqCommon.assertProgressReportExchange(publicChannel);
     amqpConnection.on('error', (err) => {
         winston.error(`RabbitMQ connection failure: ${err.toString()}`);
         cleanUp(2);
@@ -38,35 +40,25 @@ export function pushTask(task: any) {
 }
 
 export async function waitForResult(handle: (result: ProgressReportData) => Promise<void>) {
-    const channel = await newChannel();
-    channel.prefetch(1);
-    await channel.consume(rmqCommon.resultReportQueueName, (msg: amqp.Message) => {
-        winston.info(`Got result from queue`);
-        (async () => {
-            const data = msgpack.decode(msg.content);
-            await handle(data);
-        })().then(async () => {
-            channel.ack(msg);
-        }, async (err) => {
-            winston.warn(`Failed to process message ${err.toString()}, try again`);
-            setTimeout(() => { channel.nack(msg, false, true) }, 500);
-        });
-    });
+    await rmqCommon.waitForTask(amqpConnection, rmqCommon.resultReportQueueName, null, (err) => {
+        if (err instanceof requestErrors.RequestError || err instanceof requestErrors.StatusCodeError || err instanceof requestErrors.TransformError) {
+            return true;
+        } else return false;
+    }, handle);
 }
 
 export async function waitForProgress(handle: (result: ProgressReportData) => Promise<void>) {
     const channel = await newChannel();
-    channel.prefetch(1);
-    await channel.consume(rmqCommon.resultReportQueueName, (msg: amqp.Message) => {
-        winston.info(`Got result from queue`);
-        (async () => {
-            const data = msgpack.decode(msg.content);
-            await handle(data);
-        })().then(async () => {
-            channel.ack(msg);
+    const queueName = (await channel.assertQueue('', { exclusive: true })).queue;
+    await channel.bindQueue(queueName, rmqCommon.progressExchangeName, '');
+    await channel.consume(queueName, (msg: amqp.Message) => {
+        const data = msgpack.decode(msg.content) as ProgressReportData;
+        winston.verbose(`Got result from progress exchange, id: ${data.taskId}`);
+
+        handle(data).then(async () => {
+            channel.ack(msg)
         }, async (err) => {
-            winston.warn(`Failed to process message ${err.toString()}, try again`);
-            setTimeout(() => { channel.nack(msg, false, true) }, 500);
+            channel.nack(msg, false, false);
         });
     });
 }

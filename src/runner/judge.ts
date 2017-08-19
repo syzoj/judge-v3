@@ -4,7 +4,7 @@ import fse = require('fs-extra');
 import winston = require('winston');
 
 import { SandboxStatus } from 'simple-sandbox/lib/interfaces';
-import { TaskResult, StandardRunTask, StandardRunResult } from '../interfaces';
+import { TestcaseResultType, StandardRunTask, StandardRunResult } from '../interfaces';
 import { createOrEmptyDir, tryEmptyDir } from './utils';
 import { readFileLength, tryReadFile } from '../utils';
 import { globalConfig as Cfg } from './config';
@@ -17,7 +17,7 @@ const workingDir = `${Cfg.workingDirectory}/data`;
 const spjWorkingDir = `${Cfg.workingDirectory}/data-spj`;
 
 interface SpjResult {
-    status: TaskResult;
+    status: TestcaseResultType;
     message: string;
     score: number;
 }
@@ -37,7 +37,7 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
 
     if (spjRunResult.result.status !== SandboxStatus.OK) {
         return {
-            status: TaskResult.JudgementFailed,
+            status: TestcaseResultType.JudgementFailed,
             message: `Special Judge ${SandboxStatus[spjRunResult.result.status]} encouneted.`,
             score: 0
         };
@@ -48,21 +48,21 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
 
         if ((!scoreString) || score === NaN || score < 0 || score > spjFullScore) {
             return {
-                status: TaskResult.JudgementFailed,
+                status: TestcaseResultType.JudgementFailed,
                 message: `Special Judge returned an unrecoginzed score: ${scoreString}.`,
                 score: 0
             };
         } else {
-            let status: TaskResult;
+            let status: TestcaseResultType;
             switch (score) {
                 case spjFullScore:
-                    status = TaskResult.Accepted;
+                    status = TestcaseResultType.Accepted;
                     break;
                 case 0:
-                    status = TaskResult.WrongAnswer;
+                    status = TestcaseResultType.WrongAnswer;
                     break;
                 default:
-                    status = TaskResult.PartiallyCorrect;
+                    status = TestcaseResultType.PartiallyCorrect;
                     break;
             }
             return {
@@ -131,18 +131,18 @@ export async function judgeStandard(task: StandardRunTask): Promise<StandardRunR
         const time = Math.round(runResult.result.time / 1e6),
             memory = runResult.result.memory / 1024;
 
-        let status = null, message = null;
+        let status: TestcaseResultType = null, message = null;
         if (runResult.outputLimitExceeded) {
-            status = TaskResult.OutputLimitExceeded;
+            status = TestcaseResultType.OutputLimitExceeded;
         } else if (runResult.result.status === SandboxStatus.TimeLimitExceeded) {
-            status = TaskResult.TimeLimitExceeded;
+            status = TestcaseResultType.TimeLimitExceeded;
         } else if (runResult.result.status === SandboxStatus.MemoryLimitExceeded) {
-            status = TaskResult.MemoryLimitExceeded;
+            status = TestcaseResultType.MemoryLimitExceeded;
         } else if (runResult.result.status === SandboxStatus.RuntimeError) {
             message = `Killed: ${signals[runResult.result.code]}`;
-            status = TaskResult.RuntimeError;
+            status = TestcaseResultType.RuntimeError;
         } else if (runResult.result.status !== SandboxStatus.OK) {
-            status = TaskResult.RuntimeError;
+            status = TestcaseResultType.RuntimeError;
         } else {
             message = `Exited with return code ${runResult.result.code}`;
         }
@@ -156,7 +156,7 @@ export async function judgeStandard(task: StandardRunTask): Promise<StandardRunR
             await fse.move(pathLib.join(workingDir, outputFileName), pathLib.join(spjWorkingDir, 'user_out'));
         } catch (e) {
             if (e.code === 'ENOENT' && runResult.result.status === SandboxStatus.OK) {
-                status = TaskResult.FileError;
+                status = TestcaseResultType.FileError;
             }
         }
 
@@ -192,7 +192,7 @@ export async function judgeStandard(task: StandardRunTask): Promise<StandardRunR
                 return Object.assign({
                     scoringRate: diffResult.pass ? 1 : 0,
                     spjMessage: diffResult.message,
-                    result: diffResult.pass ? TaskResult.Accepted : TaskResult.WrongAnswer,
+                    result: diffResult.pass ? TestcaseResultType.Accepted : TestcaseResultType.WrongAnswer,
                 }, partialResult);
             }
         }
