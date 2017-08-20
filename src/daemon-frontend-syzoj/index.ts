@@ -7,6 +7,7 @@ import urlLib = require('url');
 import rp = require('request-promise');
 import winston = require('winston');
 import http = require('http');
+import cors = require('cors');
 
 import { globalConfig as Cfg } from './config';
 import { connect, waitForResult, waitForProgress } from './rmq';
@@ -17,8 +18,8 @@ import { initializeSocketIO, createTask, updateCompileStatus, updateProgress, up
 
 const app = express();
 app.use(bodyParser.json());
+// app.use(cors({ origin: true, credentials: true }));
 app.use('/daemon', taskRouter);
-
 
 (async () => {
     await connect();
@@ -63,5 +64,6 @@ app.use('/daemon', taskRouter);
     });
 })().then(() => {
     const server = http.createServer(app);
+    initializeSocketIO(server);
     server.listen(Cfg.listen.port, Cfg.listen.host);
 });

@@ -46,8 +46,9 @@ export async function fetchBinary(name: string): Promise<[string, Language, stri
         winston.debug(`Binary ${name} exists, no need for fetching...`);
     } else {
         winston.debug(`Acquiring lock ${lockFileName}...`);
-        await lockfile.lockAsync(lockFileName);
-
+        await lockfile.lockAsync(lockFileName, {
+            wait: 1000
+        });
         let ok = false;
         try {
             winston.debug(`Got lock for ${name}.`);
@@ -56,24 +57,23 @@ export async function fetchBinary(name: string): Promise<[string, Language, stri
             } else {
                 winston.debug(`Doing work: fetching binary for ${name} ...`);
                 await fse.mkdir(targetName);
-                const binary = msgpack.decode(await getRedis(name + redisBinarySuffix));
+                const binary = await getRedis(name + redisBinarySuffix);
                 winston.debug(`Decompressing binary (size=${binary.length})...`);
                 await new Promise((res, rej) => {
                     const s = tar.extract({
                         cwd: targetName
                     });
-                    s.on('error', (err) => {
-                        rej(err);
-                    })
-                    s.write(binary, () => {
-                        res();
-                    });
+                    s.on('error', rej);
+                    s.on('close', res);
+                    s.write(binary);
+                    s.end();
                 });
             }
             ok = true;
         } finally {
             if (!ok)
                 await fse.rmdir(targetName);
+            winston.debug('Unlocking...');
             await lockfile.unlockAsync(lockFileName);
         }
     }

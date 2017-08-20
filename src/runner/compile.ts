@@ -90,5 +90,4 @@ export async function compile(task: CompileTask): Promise<CompilationResult> {
     } finally {
         await Promise.all([fse.remove(binDir), fse.remove(srcDir)]);
     }
-
 }

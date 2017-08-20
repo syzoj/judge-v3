@@ -179,7 +179,9 @@ export async function judgeStandard(task: StandardRunTask): Promise<StandardRunR
                 if (inputFilePath != null)
                     await fse.copy(inputFilePath, pathLib.join(spjWorkingDir, 'input'));
                 await fse.writeFile(pathLib.join(spjWorkingDir, 'code'), userCode);
+                winston.debug(`Running spj`);
                 const spjResult = await runSpj(spjBinDir, spjLanguage);
+                winston.debug('Judgement done!!');
 
                 return Object.assign({
                     scoringRate: spjResult.score,
@@ -187,8 +189,9 @@ export async function judgeStandard(task: StandardRunTask): Promise<StandardRunR
                     result: spjResult.status
                 }, partialResult);
             } else {
-                winston.debug(`Using diff`);
+                winston.debug(`Running diff`);
                 const diffResult = await runDiff(spjWorkingDir, 'user_out', 'answer');
+                winston.debug('Judgement done!!');
                 return Object.assign({
                     scoringRate: diffResult.pass ? 1 : 0,
                     spjMessage: diffResult.message,

@@ -31,7 +31,7 @@ const currentJudgeList: JudgeData[] = [];
 const finishedJudgeList = {};
 
 export function initializeSocketIO(s: http.Server) {
-    ioInstance = socketio(http);
+    ioInstance = socketio(s);
     detailProgressNamespace = ioInstance.of('/detail');
     roughProgressNamespace = ioInstance.of('/rough');
     compileProgressNamespace = ioInstance.of('/compile');
@@ -92,7 +92,8 @@ export function initializeSocketIO(s: http.Server) {
                 cb({
                     ok: true,
                     running: false,
-                    finished: true
+                    finished: true,
+                    result: finishedJudgeList[taskId]
                 });
             } else {
                 cb({
@@ -142,9 +143,9 @@ export function initializeSocketIO(s: http.Server) {
 
 
 export function createTask(taskId: number) {
-    detailProgressNamespace.to(taskId.toString()).emit("start");
-    roughProgressNamespace.to(taskId.toString()).emit("start");
-    compileProgressNamespace.to(taskId.toString()).emit("start");
+    detailProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
+    roughProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
+    compileProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
     currentJudgeList[taskId] = { running: true, current: null };
 }
 
@@ -186,5 +187,5 @@ export function updateResult(taskId: number, data: OverallResult) {
         result: data
     });
     delete currentJudgeList[taskId];
-    finishedJudgeList[taskId] = true;
+    finishedJudgeList[taskId] = roughResult;
 }
