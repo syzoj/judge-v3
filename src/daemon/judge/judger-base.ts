@@ -50,7 +50,7 @@ export abstract class JudgerBase {
             judgeTasks.push((async () => {
                 // Type minimum is skippable, run one by one
                 if (currentTask.type !== SubtaskScoringType.Summation) {
-                    let skipped: boolean = true;
+                    let skipped: boolean = false;
                     for (let index = 0; index < currentTask.cases.length; index++) {
                         const currentTaskResult = currentResult.cases[index];
                         if (skipped) {
