@@ -37,7 +37,6 @@ export interface TestcaseResult {
 }
 
 export interface SubtaskResult {
-    status: TaskStatus;
     score?: number;
     cases: TestcaseResult[];
 }
@@ -53,7 +52,6 @@ export interface CompilationResult {
 }
 
 export interface JudgeResult {
-    status: TaskStatus;
     subtasks?: SubtaskResult[];
 }
 
@@ -97,15 +95,15 @@ export enum TaskStatus {
 
 export enum TestcaseResultType {
     Accepted = 1,
-    WrongAnswer,
-    PartiallyCorrect,
-    MemoryLimitExceeded,
-    TimeLimitExceeded,
-    OutputLimitExceeded,
-    FileError, // The output file does not exist
-    RuntimeError,
-    JudgementFailed, // Special Judge or Interactor fails
-    InvalidInteraction
+    WrongAnswer = 2,
+    PartiallyCorrect = 3,
+    MemoryLimitExceeded = 4,
+    TimeLimitExceeded = 5,
+    OutputLimitExceeded = 6,
+    FileError = 7, // The output file does not exist
+    RuntimeError = 8,
+    JudgementFailed = 9, // Special Judge or Interactor fails
+    InvalidInteraction = 10
 }
 
 export interface FileContent {

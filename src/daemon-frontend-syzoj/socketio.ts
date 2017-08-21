@@ -42,6 +42,9 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
+                if (req.type !== 'detail') {
+                    throw new Error("Request type in token mismatch.");
+                }
             } catch (err) {
                 cb({
                     ok: false,
@@ -60,7 +63,7 @@ export function initializeSocketIO(s: http.Server) {
                 cb({
                     ok: true,
                     finished: false,
-                    current: currentJudgeList[taskId]
+                    current: currentJudgeList[taskId] || { running: false }
                 });
             }
         });
@@ -71,6 +74,9 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
+                if (req.type !== 'rough') {
+                    throw new Error("Request type in token mismatch.");
+                }
             } catch (err) {
                 cb({
                     ok: false,
@@ -110,6 +116,9 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
+                if (req.type !== 'compile') {
+                    throw new Error("Request type in token mismatch.");
+                }
             } catch (err) {
                 cb({
                     ok: false,
@@ -140,7 +149,6 @@ export function initializeSocketIO(s: http.Server) {
         });
     });
 }
-
 
 export function createTask(taskId: number) {
     detailProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });

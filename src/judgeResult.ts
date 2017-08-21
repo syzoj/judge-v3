@@ -61,7 +61,7 @@ export function convertResult(id: number, source: OverallResult): JudgeResultSub
         time = forEveryTestcase(c => c.time, _.sum);
         memory = forEveryTestcase(c => c.memory, _.max);
 
-        if (source.judge.subtasks.some(s => s.status === TaskStatus.Failed)) {
+        if (source.judge.subtasks.some(s => s.cases.some(c => c.status === TaskStatus.Failed))) {
             winston.debug(`Some subtasks failed, returning system error`);
             statusString = systemError;
         } else {

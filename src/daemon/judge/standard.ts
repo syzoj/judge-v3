@@ -4,7 +4,6 @@ import { globalConfig as Cfg } from '../config';
 import { cloneObject, readFileLength } from '../../utils';
 import { compile } from './compile';
 import { Language, getLanguage } from '../../languages';
-import { processJudgement } from './process'
 import { runTask } from '../rmq';
 import { JudgerBase } from './judger-base';
 

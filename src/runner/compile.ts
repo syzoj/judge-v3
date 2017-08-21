@@ -3,6 +3,7 @@ import fse = require('fs-extra');
 import randomString = require('randomstring');
 import bluebird = require('bluebird');
 import getFolderSize = require('get-folder-size');
+import AnsiToHtml = require('ansi-to-html');
 
 import { CompileTask, CompilationResult, TaskStatus } from '../interfaces';
 import { globalConfig as Cfg } from './config';
@@ -14,6 +15,7 @@ import { readFileLength } from '../utils';
 import { pushBinary } from './executable';
 
 const getSize: any = bluebird.promisify(getFolderSize);
+const convert = new AnsiToHtml({ escapeXML: true });
 
 export async function compile(task: CompileTask): Promise<CompilationResult> {
     const srcDir = pathLib.join(Cfg.workingDirectory, `src`);
@@ -75,7 +77,7 @@ export async function compile(task: CompileTask): Promise<CompilationResult> {
             } else { // If compilation error
                 return {
                     status: TaskStatus.Failed,
-                    message: await readFileLength(pathLib.join(binDir, compileConfig.messageFile), Cfg.compilerMessageLimit)
+                    message: convert.toHtml(await readFileLength(pathLib.join(binDir, compileConfig.messageFile), Cfg.compilerMessageLimit))
                 };
             }
         } else {

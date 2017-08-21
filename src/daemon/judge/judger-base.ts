@@ -38,7 +38,7 @@ export abstract class JudgerBase {
             status: TaskStatus.Waiting
         }));
         const reportProgress = function () {
-            reportProgressResult({ status: TaskStatus.Running, subtasks: results });
+            reportProgressResult({ subtasks: results });
         }
         winston.debug(`Totally ${results.length} subtasks.`);
 
@@ -61,7 +61,6 @@ export abstract class JudgerBase {
                             try {
                                 const taskJudge = await this.judgeTestcase(currentTask.cases[index], async () => {
                                     currentTaskResult.status = TaskStatus.Running;
-                                    currentResult.status = TaskStatus.Running;
                                     await reportProgress();
                                 });
                                 currentTaskResult.status = TaskStatus.Done;
@@ -89,7 +88,6 @@ export abstract class JudgerBase {
                             try {
                                 currentTaskResult.result = await this.judgeTestcase(currentTask.cases[index], async () => {
                                     currentTaskResult.status = TaskStatus.Running;
-                                    currentResult.status = TaskStatus.Running;
                                     await reportProgress();
                                 });
                                 currentTaskResult.status = TaskStatus.Done;
@@ -106,16 +104,14 @@ export abstract class JudgerBase {
                 if (currentResult.cases.some(c => c.status === TaskStatus.Failed)) {
                     // If any testcase has failed, the score is invaild.
                     currentResult.score = NaN;
-                    currentResult.status = TaskStatus.Failed;
                 } else {
                     currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
-                    currentResult.status = TaskStatus.Done;
                 }
                 winston.verbose(`Subtask ${subtaskIndex}, finished`);
             })());
         }
         await Promise.all(judgeTasks);
-        return { status: TaskStatus.Done, subtasks: results };
+        return { subtasks: results };
     }
     protected abstract judgeTestcase(curCase: TestcaseJudge, started: () => Promise<void>): Promise<TestcaseDetails>;
 }
