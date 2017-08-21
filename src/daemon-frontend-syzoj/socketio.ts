@@ -192,6 +192,7 @@ export function updateResult(taskId: number, data: OverallResult) {
     });
     detailProgressNamespace.to(taskId.toString()).emit('finish', {
         taskId: taskId,
+        roughResult: roughResult,
         result: data
     });
     delete currentJudgeList[taskId];
