@@ -66,7 +66,7 @@ async function parseYamlContent(obj: UserConfigFile, dataName: string): Promise<
             cases: s.cases.map(c => ({
                 input: obj.inputFile ? filterPath(obj.inputFile.replace('#', c.toString())) : null,
                 output: obj.outputFile ? filterPath(obj.outputFile.replace('#', c.toString())) : null,
-                userAnswer: obj.userOutput ? filterPath(obj.userOutput.replace('#', c.toString())) : null,
+                userOutputFile: obj.userOutput ? filterPath(obj.userOutput.replace('#', c.toString())) : null,
                 name: c.toString()
             }))
         })),
