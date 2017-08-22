@@ -2,6 +2,7 @@ import http = require('http');
 import socketio = require('socket.io');
 import diff = require('jsondiffpatch');
 import jwt = require('jsonwebtoken');
+import winston = require('winston');
 
 import { globalConfig as Cfg } from './config';
 import { convertResult } from '../judgeResult';
@@ -46,6 +47,7 @@ export function initializeSocketIO(s: http.Server) {
                     throw new Error("Request type in token mismatch.");
                 }
             } catch (err) {
+                winston.info('The client has an incorrect token.');
                 cb({
                     ok: false,
                     message: err.toString()
@@ -53,15 +55,18 @@ export function initializeSocketIO(s: http.Server) {
                 return;
             }
             const taskId = req.taskId;
+            winston.verbose(`A client trying to get detailed progress for ${taskId}.`);
             socket.join(taskId.toString());
             if (finishedJudgeList[taskId]) {
+                winston.debug(`Judge task #${taskId} has been finished, ${JSON.stringify(currentJudgeList[taskId])}`);
                 cb({
                     ok: true,
                     finished: true,
-                    result: currentJudgeList[taskId],
+                    result: currentJudgeList[taskId] && currentJudgeList[taskId].current,
                     roughResult: finishedJudgeList[taskId]
                 });
             } else {
+                winston.debug(`Judge task #${taskId} has not been finished`);
                 cb({
                     ok: true,
                     finished: false,
@@ -70,7 +75,6 @@ export function initializeSocketIO(s: http.Server) {
             }
         });
     });
-
     roughProgressNamespace.on('connection', (socket) => {
         socket.on('join', (reqJwt, cb) => {
             let req;
@@ -153,6 +157,7 @@ export function initializeSocketIO(s: http.Server) {
 }
 
 export function createTask(taskId: number) {
+    winston.debug(`Judge task #${taskId} has started`);
     detailProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
     roughProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
     compileProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
@@ -160,6 +165,7 @@ export function createTask(taskId: number) {
 }
 
 export function updateCompileStatus(taskId: number, result: CompilationResult) {
+    winston.debug(`Updating compilation status for #${taskId}`);
     compileProgressNamespace.to(taskId.toString()).emit('compiled', {
         taskId: taskId,
         result: {
@@ -170,7 +176,7 @@ export function updateCompileStatus(taskId: number, result: CompilationResult) {
 }
 
 export function updateProgress(taskId: number, data: OverallResult) {
-    // currentJudgeList[taskId].current = data;
+    winston.debug(`Updating progress for #${taskId}, data: ${JSON.stringify(data)}`);
     const original = currentJudgeList[taskId].current;
     const delta = diff.diff(original, data);
     detailProgressNamespace.to(taskId.toString()).emit('update', {
@@ -181,6 +187,8 @@ export function updateProgress(taskId: number, data: OverallResult) {
 }
 
 export function updateResult(taskId: number, data: OverallResult) {
+    currentJudgeList[taskId].running = false;
+    currentJudgeList[taskId].current = data;
     const finalResult = convertResult(taskId, data);
     const roughResult = {
         result: finalResult.statusString,
@@ -202,5 +210,5 @@ export function updateResult(taskId: number, data: OverallResult) {
 
 export function cleanupProgress(taskId: number) {
     // Prevent race condition
-    setTimeout(() => delete currentJudgeList[taskId], 10000);
+    setTimeout(() => { delete currentJudgeList[taskId]; }, 10000);
 }
