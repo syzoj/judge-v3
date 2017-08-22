@@ -1,8 +1,9 @@
 import winston = require('winston');
 import _ = require('lodash');
+import util = require('util');
 
 function formatter(args) {
-    var msg = args.level + ' - ' + args.message + (_.isEmpty(args.meta) ? '' : (' - ' + JSON.stringify(args.meta)));
+    var msg = args.level + ' - ' + args.message + (_.isEmpty(args.meta) ? '' : (' - ' + util.inspect(args.meta)));
     return msg;
 }
 
