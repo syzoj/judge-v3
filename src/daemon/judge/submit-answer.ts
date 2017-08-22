@@ -61,8 +61,8 @@ export class AnswerSubmissionJudger extends JudgerBase {
         } catch (err) {
             return {
                 type: TestcaseResultType.FileError,
-                time: NaN,
-                memory: NaN,
+                time: null,
+                memory: null,
                 scoringRate: 0,
                 systemMessage: `Unable to open your answer: ${err.toString()}`
             }

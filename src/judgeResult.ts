@@ -56,8 +56,11 @@ export function convertResult(id: number, source: OverallResult): JudgeResultSub
         }
     } else if (source.judge != null && source.judge.subtasks != null) {
         const forEveryTestcase = function <TParam>(map: (v: TestcaseDetails) => TParam, reduce: (v: TParam[]) => TParam): TParam {
-            return reduce(source.judge.subtasks.map(s => reduce(s.cases.filter(c => c.result != null).map(c => map(c.result)))));
+            const list = source.judge.subtasks.map(s => reduce(s.cases.filter(c => c.result != null).map(c => map(c.result)))));
+            if (list.every(x => x == null)) return null;
+            else return reduce(list);
         }
+        
         time = forEveryTestcase(c => c.time, _.sum);
         memory = forEveryTestcase(c => c.memory, _.max);
 
