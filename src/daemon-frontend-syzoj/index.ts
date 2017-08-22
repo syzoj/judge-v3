@@ -10,11 +10,11 @@ import http = require('http');
 import cors = require('cors');
 
 import { globalConfig as Cfg } from './config';
-import { connect, waitForResult, waitForProgress } from './rmq';
+import { connect, waitForResult, waitForProgress, reportReported } from './rmq';
 import { convertResult } from '../judgeResult';
 import { ProgressReportType, OverallResult, TaskStatus, CompilationResult } from '../interfaces';
 import taskRouter from './daemonRouter';
-import { initializeSocketIO, createTask, updateCompileStatus, updateProgress, updateResult } from './socketio';
+import { cleanupProgress, initializeSocketIO, createTask, updateCompileStatus, updateProgress, updateResult } from './socketio';
 
 const app = express();
 app.use(bodyParser.json());
@@ -41,13 +41,14 @@ app.use('/daemon', taskRouter);
 
         if (result.type === ProgressReportType.Finished) {
             await submit("api/v2/judge/finished", convertResult(result.taskId, result.progress as OverallResult));
+            reportReported(result.taskId);
         } else if (result.type === ProgressReportType.Compiled) {
             await submit("api/v2/judge/compiled", {
                 taskId: result.taskId,
                 result: result.progress
             });
         } else {
-
+            winston.error("Unsupported result type: " + result.type);
         }
         winston.verbose("Reported.");
     });
@@ -60,6 +61,8 @@ app.use('/daemon', taskRouter);
             updateProgress(result.taskId, result.progress as OverallResult);
         } else if (result.type === ProgressReportType.Finished) {
             updateResult(result.taskId, result.progress as OverallResult);
+        } else if (result.type === ProgressReportType.Reported) {
+            cleanupProgress(result.taskId);
         }
     });
 })().then(() => {

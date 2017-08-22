@@ -6,7 +6,7 @@ import util = require('util');
 import { cleanUp } from './cleanup';
 import * as rmqCommon from '../rmq-common';
 import requestErrors = require('request-promise/errors');
-import { JudgeResult, ProgressReportData } from '../interfaces';
+import { JudgeResult, ProgressReportData, ProgressReportType } from '../interfaces';
 
 let amqpConnection: amqp.Connection;
 let publicChannel: amqp.Channel;
@@ -61,4 +61,10 @@ export async function waitForProgress(handle: (result: ProgressReportData) => Pr
             channel.nack(msg, false, false);
         });
     });
+}
+
+export async function reportReported(taskId: number) {
+    winston.verbose('Reporting report finished: ' + taskId);
+    const payload = msgpack.encode({ type: ProgressReportType.Reported, taskId: taskId });
+    publicChannel.publish(rmqCommon.progressExchangeName, '', payload);
 }

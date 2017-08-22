@@ -1,10 +1,17 @@
 import express = require('express');
 import winston = require('winston');
+import urlLib = require('url');
+import rp = require('request-promise');
 
 import { globalConfig as Cfg } from './config';
 import { pushTask } from './rmq';
 
 const taskRouter: express.Router = express.Router();
+
+interface JudgeTask {
+    content: any;
+    extraDataLocation?: string;
+}
 
 taskRouter.use((req, res, next) => {
     if (req.get('Token') !== Cfg.token) {
@@ -14,13 +21,23 @@ taskRouter.use((req, res, next) => {
     }
 });
 
-taskRouter.put('/task', (req, res) => {
+taskRouter.put('/task', async (req, res) => {
     if (!req.body) {
         return res.sendStatus(400);
     }
     try {
         winston.info("Got task: " + req.body);
-        pushTask(req.body);
+        const task = req.body as JudgeTask;
+        let extraData: Buffer = null;
+        if (task.extraDataLocation != null) {
+            winston.verbose("Have extra data, download...");
+            extraData = await rp(urlLib.resolve(Cfg.remoteUrl, task.extraDataLocation), {
+                encoding: null,
+                simple: true
+            });
+            winston.verbose("Extra data downloaded.");
+        }
+        pushTask({ content: task.content, extraData: extraData });
         return res.status(200).send('OK');
     } catch (err) {
         return res.status(500).send(err.toString());

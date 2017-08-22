@@ -57,7 +57,9 @@ export function initializeSocketIO(s: http.Server) {
             if (finishedJudgeList[taskId]) {
                 cb({
                     ok: true,
-                    finished: true
+                    finished: true,
+                    result: currentJudgeList[taskId],
+                    roughResult: finishedJudgeList[taskId]
                 });
             } else {
                 cb({
@@ -195,6 +197,9 @@ export function updateResult(taskId: number, data: OverallResult) {
         roughResult: roughResult,
         result: data
     });
-    delete currentJudgeList[taskId];
     finishedJudgeList[taskId] = roughResult;
+}
+
+export function cleanupProgress(taskId: number) {
+    delete currentJudgeList[taskId];
 }
