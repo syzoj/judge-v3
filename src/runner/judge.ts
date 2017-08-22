@@ -4,7 +4,7 @@ import fse = require('fs-extra');
 import winston = require('winston');
 
 import { SandboxStatus } from 'simple-sandbox/lib/interfaces';
-import { TestcaseResultType, StandardRunTask, StandardRunResult } from '../interfaces';
+import { TestcaseResultType, StandardRunTask, StandardRunResult, AnswerSubmissionRunTask, AnswerSubmissionRunResult } from '../interfaces';
 import { createOrEmptyDir, tryEmptyDir } from './utils';
 import { readFileLength, tryReadFile } from '../utils';
 import { globalConfig as Cfg } from './config';
@@ -44,7 +44,7 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
     } else {
         const scoreString = await tryReadFile(pathLib.join(spjWorkingDir, scoreFileName)),
             score = Number(scoreString);
-        const messageString = await readFileLength(pathLib.join(spjWorkingDir + messageFileName), Cfg.stderrDisplayLimit);
+        const messageString = await readFileLength(pathLib.join(spjWorkingDir, messageFileName), Cfg.stderrDisplayLimit);
 
         if ((!scoreString) || score === NaN || score < 0 || score > spjFullScore) {
             return {
@@ -74,7 +74,55 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
     }
 }
 
-export async function judgeStandard(task: StandardRunTask): Promise<StandardRunResult> {
+export async function judgeAnswerSubmission(task: AnswerSubmissionRunTask)
+    : Promise<AnswerSubmissionRunResult> {
+    try {
+        await createOrEmptyDir(spjWorkingDir);
+        const testDataPath = pathLib.join(Cfg.testDataDirectory, task.testDataName);
+
+        const inputFilePath = task.inputData != null ?
+            pathLib.join(testDataPath, task.inputData) : null;
+        if (inputFilePath != null)
+            await fse.copy(inputFilePath, pathLib.join(spjWorkingDir, 'input'));
+
+        const answerFilePath = task.answerData != null ?
+            pathLib.join(testDataPath, task.answerData) : null;
+        if (answerFilePath != null)
+            await fse.copy(answerFilePath, pathLib.join(spjWorkingDir, 'answer'));
+
+        await fse.writeFile(pathLib.join(spjWorkingDir, "user_out"), task.userAnswer);
+
+        if (task.spjExecutableName != null) {
+            const [spjBinDir, spjLanguage] = await fetchBinary(task.spjExecutableName);
+            winston.debug(`Using spj, language: ${spjLanguage.name}`);
+            if (inputFilePath != null)
+                await fse.copy(inputFilePath, pathLib.join(spjWorkingDir, 'input'));
+            winston.debug(`Running spj`);
+            const spjResult = await runSpj(spjBinDir, spjLanguage);
+            winston.debug('Judgement done!!');
+
+            return {
+                result: spjResult.status,
+                scoringRate: spjResult.score,
+                spjMessage: spjResult.message,
+            };
+        } else {
+            winston.debug(`Running diff`);
+            const diffResult = await runDiff(spjWorkingDir, 'user_out', 'answer');
+            winston.debug('Judgement done!!');
+            return {
+                result: diffResult.pass ? TestcaseResultType.Accepted : TestcaseResultType.WrongAnswer,
+                scoringRate: diffResult.pass ? 1 : 0,
+                spjMessage: diffResult.message,
+            };
+        }
+    } finally {
+        await tryEmptyDir(spjWorkingDir);
+    }
+}
+
+export async function judgeStandard(task: StandardRunTask)
+    : Promise<StandardRunResult> {
     winston.debug("Standard judge task...", task);
     try {
         const testDataPath = pathLib.join(Cfg.testDataDirectory, task.testDataName);

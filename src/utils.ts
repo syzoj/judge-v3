@@ -42,6 +42,15 @@ export async function tryReadFile(path: string, encoding = 'utf8'): Promise<stri
     return fileContent;
 }
 
+export function readBufferLength(buf: Buffer, lengthLimit: number, appendPrompt = fileTooLongPrompt)
+    : string {
+    let content = buf.toString('utf8', 0, lengthLimit);
+    if (buf.length > lengthLimit) {
+        content += '\n' + appendPrompt(buf.length, lengthLimit);
+    }
+    return content;
+}
+
 export async function readFileLength(path: string, lengthLimit: number, appendPrompt = fileTooLongPrompt)
     : Promise<string> {
     let file = -1;
@@ -56,7 +65,7 @@ export async function readFileLength(path: string, lengthLimit: number, appendPr
         }
         return ret;
     } catch (e) {
-        return "";
+        return null;
     } finally {
         if (file != -1) {
             await fse.close(file);

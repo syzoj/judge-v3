@@ -3,5 +3,6 @@
     "RedisUrl": "redis://127.0.0.1:6379",
     "TestData": "/home/t123yh/sync2/syzoj/uploads/testdata",
     "Priority": 1,
-    "DataDisplayLimit": 100
+    "DataDisplayLimit": 100,
+    "TempDirectory": "/tmp"
 }

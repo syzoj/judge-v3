@@ -26,7 +26,7 @@ export abstract class JudgerBase {
         this.testData = t;
     }
 
-    abstract preprocessTestData(): Promise<void>;
+    async preprocessTestData(): Promise<void> { }
 
     abstract compile(): Promise<CompilationResult>;
 
@@ -114,4 +114,6 @@ export abstract class JudgerBase {
         return { subtasks: results };
     }
     protected abstract judgeTestcase(curCase: TestcaseJudge, started: () => Promise<void>): Promise<TestcaseDetails>;
+
+    async cleanup() { }
 }

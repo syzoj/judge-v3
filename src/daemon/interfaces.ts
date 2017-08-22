@@ -7,12 +7,17 @@ export enum ProblemType {
     Interaction = 3
 }
 
-export interface JudgeTask {
+export interface JudgeTaskContent {
     taskId: number;
     testData: string;
     type: ProblemType;
     priority: number;
-    param: StandardJudgeParameter | AnswerSubmissionJudgeParameter | InteractionJudgeParameter;
+    param: StandardJudgeParameter | InteractionJudgeParameter;
+}
+
+export interface JudgeTask {
+    content: JudgeTaskContent;
+    extraData?: Buffer;
 }
 
 export interface StandardJudgeParameter {
@@ -22,10 +27,6 @@ export interface StandardJudgeParameter {
     memoryLimit: number;
     fileIOInput?: string;  // Null indicates stdio.
     fileIOOutput?: string;
-}
-
-export interface AnswerSubmissionJudgeParameter {
-    answerFile: Buffer;
 }
 
 export interface InteractionJudgeParameter {

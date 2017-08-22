@@ -14,19 +14,19 @@ import { JudgeResult, ErrorType, ProgressReportType, OverallResult } from '../in
     await rmq.waitForTask(async (task) => {
         let result: OverallResult;
         try {
-            await rmq.reportProgress({ taskId: task.taskId, type: ProgressReportType.Started, progress: null });
-            result = await judge(task, async (progress) => {
-                await rmq.reportProgress({ taskId: task.taskId, type: ProgressReportType.Progress, progress: progress });
+            await rmq.reportProgress({ taskId: task.content.taskId, type: ProgressReportType.Started, progress: null });
+            result = await judge(task.content, task.extraData, async (progress) => {
+                await rmq.reportProgress({ taskId: task.content.taskId, type: ProgressReportType.Progress, progress: progress });
             }, async (progress) => {
-                const data = { taskId: task.taskId, type: ProgressReportType.Compiled, progress: progress };
+                const data = { taskId: task.content.taskId, type: ProgressReportType.Compiled, progress: progress };
                 await rmq.reportProgress(data);
                 await rmq.reportResult(data);
             });
         } catch (err) {
-            winston.warn(`Judge error!!! TaskId: ${task.taskId}`, err);
+            winston.warn(`Judge error!!! TaskId: ${task.content.taskId}`, err);
             result = { error: ErrorType.SystemError, systemMessage: `An error occurred.\n${err.toString()}` };
         }
-        const resultReport = { taskId: task.taskId, type: ProgressReportType.Finished, progress: result };
+        const resultReport = { taskId: task.content.taskId, type: ProgressReportType.Finished, progress: result };
         await rmq.reportProgress(resultReport);
         await rmq.reportResult(resultReport);
     });

@@ -9,6 +9,7 @@ export interface ConfigStructure {
     priority: number;
     redis: string;
     dataDisplayLimit: number;
+    tempDirectory: string;
 }
 
 const optionDefinitions = [
@@ -28,7 +29,8 @@ export const globalConfig: ConfigStructure = {
     testDataDirectory: configJSON.TestData,
     priority: configJSON.Priority,
     redis: configJSON.RedisUrl,
-    dataDisplayLimit: configJSON.DataDisplayLimit
+    dataDisplayLimit: configJSON.DataDisplayLimit,
+    tempDirectory: configJSON.TempDirectory
 }
 
 configureWinston(options.verbose);

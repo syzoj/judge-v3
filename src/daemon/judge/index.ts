@@ -1,34 +1,17 @@
-import { JudgeTask, ProblemType, TestData, StandardJudgeParameter } from '../interfaces';
+import winston = require('winston');
+import rmq = require('../rmq');
+
+import { JudgeTaskContent, JudgeTask, ProblemType, TestData, StandardJudgeParameter } from '../interfaces';
 import { StandardJudger } from './standard';
 import { JudgerBase } from './judger-base';
 import { JudgeResult, ErrorType, OverallResult, CompilationResult, TaskStatus, ProgressReportType } from '../../interfaces';
 import { readRulesFile } from '../testData';
 import { filterPath } from '../../utils';
-import winston = require('winston');
-import rmq = require('../rmq');
-export async function listen() {
-    await rmq.waitForTask(async (task) => {
-        let result: OverallResult;
-        try {
-            await rmq.reportProgress({ taskId: task.taskId, type: ProgressReportType.Started, progress: null });
-            result = await judge(task, async (progress) => {
-                await rmq.reportProgress({ taskId: task.taskId, type: ProgressReportType.Progress, progress: progress });
-            }, async (compileResult) => {
-                const cresult = { taskId: task.taskId, type: ProgressReportType.Compiled, progress: compileResult };
-                await rmq.reportResult(cresult);
-                await rmq.reportProgress(cresult);
-            });
-        } catch (err) {
-            winston.warn(`Judge error!!! TaskId: ${task.taskId}`, err);
-            result = { error: ErrorType.SystemError, systemMessage: `An error occurred.\n${err.toString()}` };
-        }
-        const resultReport = { taskId: task.taskId, type: ProgressReportType.Finished, progress: result };
-        await rmq.reportResult(resultReport);
-        await rmq.reportProgress(resultReport);
-    });
-}
+import { AnswerSubmissionJudger } from './submit-answer';
+
 export async function judge(
-    task: JudgeTask,
+    task: JudgeTaskContent,
+    extraData: Buffer,
     reportProgress: (p: OverallResult) => Promise<void>,
     reportCompileProgress: (p: CompilationResult) => Promise<void>
 ): Promise<OverallResult> {
@@ -50,6 +33,8 @@ export async function judge(
     let judger: JudgerBase;
     if (task.type === ProblemType.Standard) {
         judger = new StandardJudger(testData, task.param as StandardJudgeParameter, task.priority);
+    } else if (task.type === ProblemType.AnswerSubmission) {
+        judger = new AnswerSubmissionJudger(testData, extraData, task.priority);
     } else {
         throw new Error(`Task type not supported`);
     }
@@ -74,6 +59,7 @@ export async function judge(
     }
     winston.debug(`Judging...`);
     const judgeResult = await judger.judge(r => reportProgress({ compile: compileResult, judge: r }));
-
+    
+    await judger.cleanup();
     return { compile: compileResult, judge: judgeResult };
 }

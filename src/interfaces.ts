@@ -21,13 +21,13 @@ export interface TestcaseDetails {
     type: TestcaseResultType;
     time: number;
     memory: number;
-    input: FileContent;
-    output: FileContent; // Output in test data
+    input?: FileContent;
+    output?: FileContent; // Output in test data
     scoringRate: number; // e.g. 0.5
-    userOutput: string;
-    userError: string;
-    spjMessage: string;
-    systemMessage: string;
+    userOutput?: string;
+    userError?: string;
+    spjMessage?: string;
+    systemMessage?: string;
 };
 
 export interface TestcaseResult {
@@ -69,7 +69,7 @@ export interface StandardRunResult {
     userError: string;
     scoringRate: number;
     spjMessage: string;
-    systemMessage: string;
+    systemMessage?: string;
     result: TestcaseResultType;
 }
 
@@ -83,6 +83,20 @@ export interface StandardRunTask {
     fileIOOutput?: string;
     userExecutableName: string;
     spjExecutableName?: string;
+}
+
+export interface AnswerSubmissionRunTask {
+    testDataName: string;
+    inputData: string;
+    answerData: string;
+    userAnswer: Buffer;
+    spjExecutableName?: string;
+}
+
+export interface AnswerSubmissionRunResult {
+    scoringRate: number;
+    spjMessage: string;
+    result: TestcaseResultType;
 }
 
 export enum TaskStatus {
@@ -122,6 +136,7 @@ export enum ProgressReportType {
     Compiled = 2,
     Progress = 3,
     Finished = 4,
+    Reported = 5,
 }
 
 export interface ProgressReportData {

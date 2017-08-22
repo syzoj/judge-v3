@@ -10,7 +10,7 @@ const taskRouter: express.Router = express.Router();
 
 interface JudgeTask {
     content: any;
-    extraDataLocation?: string;
+    extraFileLocation?: string;
 }
 
 taskRouter.use((req, res, next) => {
@@ -29,9 +29,9 @@ taskRouter.put('/task', async (req, res) => {
         winston.info("Got task: " + JSON.stringify(req.body));
         const task = req.body as JudgeTask;
         let extraData: Buffer = null;
-        if (task.extraDataLocation != null) {
-            winston.verbose("Have extra data, download...");
-            extraData = await rp(urlLib.resolve(Cfg.remoteUrl, task.extraDataLocation), {
+        if (task.extraFileLocation != null) {
+            winston.verbose(`Have extra data, downloading from '${task.extraFileLocation}'...`);
+            extraData = await rp(urlLib.resolve(Cfg.remoteUrl, task.extraFileLocation), {
                 encoding: null,
                 simple: true
             });
