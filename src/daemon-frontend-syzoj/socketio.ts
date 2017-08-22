@@ -201,5 +201,6 @@ export function updateResult(taskId: number, data: OverallResult) {
 }
 
 export function cleanupProgress(taskId: number) {
-    delete currentJudgeList[taskId];
+    // Prevent race condition
+    setTimeout(() => delete currentJudgeList[taskId], 10000);
 }
