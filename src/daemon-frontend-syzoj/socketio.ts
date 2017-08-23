@@ -115,7 +115,7 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
-                if (req.displayConfig.pushType !== 'rough') {
+                if (req.type !== 'rough') {
                     throw new Error("Permission denied");
                 }
                 clientList[socket.id] = req.displayConfig;
@@ -159,7 +159,7 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
-                if (req.displayConfig.pushType !== 'compile') {
+                if (req.type !== 'compile') {
                     throw new Error("Request type in token mismatch.");
                 }
             } catch (err) {
