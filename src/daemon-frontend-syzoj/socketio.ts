@@ -8,11 +8,6 @@ import { globalConfig as Cfg } from './config';
 import { convertResult } from '../judgeResult';
 import { JudgeResult, TaskStatus, CompilationResult, OverallResult } from '../interfaces';
 
-interface JudgeData {
-    running: boolean;
-    current?: OverallResult;
-}
-
 interface RoughResult {
     result: string;
     score: number;
@@ -28,18 +23,60 @@ let roughProgressNamespace: SocketIO.Namespace;
 // can only see whether his / her submission is successfully compiled.
 let compileProgressNamespace: SocketIO.Namespace;
 
-const currentJudgeList: JudgeData[] = [];
+const currentJudgeList: OverallResult[] = [];
 const finishedJudgeList: RoughResult[] = [];
 const compiledList = [];
 
+// The detail progress is pushed to client in the delta form.
+// However, the messages may arrive in an unorder form.
+// In that case, the client will re-connect the server.
+const clientDetailProgressList: { [id: string]: { version: number, content: OverallResult } } = {};
+const clientDisplayConfigList: { [id: string]: DisplayConfig } = {};
+
 interface DisplayConfig {
-    pushType: string;
-    hideScore: boolean;
-    hideUsage: boolean;
-    hideCode: boolean;
-    hideResult: boolean;
-    hideTestcaseDetails?: boolean;
+    showScore: boolean;
+    showUsage: boolean;
+    showCode: boolean;
+    showResult: boolean;
+    showDetailResult: boolean;
+    showTestdata: boolean;
+    inContest: boolean;
+    // hideTestcaseDetails?: boolean;
 };
+
+function processOverallResult(source: OverallResult, config: DisplayConfig): OverallResult {
+    if (source == null)
+        return null;
+    if (source.error != null) {
+        return {
+            error: source.error,
+            systemMessage: source.systemMessage
+        };
+    }
+    return {
+        compile: source.compile,
+        judge: config.showDetailResult ? (source.judge && {
+            subtasks: source.judge.subtasks && source.judge.subtasks.map(st => ({
+                score: st.score,
+                cases: st.cases.map(cs => ({
+                    status: cs.status,
+                    result: cs.result && {
+                        type: cs.result.type,
+                        time: config.showUsage ? cs.result.time : undefined,
+                        memory: config.showUsage ? cs.result.memory : undefined,
+                        scoringRate: cs.result.scoringRate,
+                        systemMessage: cs.result.systemMessage,
+                        input: config.showTestdata ? cs.result.input : undefined,
+                        output: config.showTestdata ? cs.result.output : undefined,
+                        userOutput: config.showTestdata ? cs.result.userOutput : undefined,
+                        userError: config.showTestdata ? cs.result.userError : undefined,
+                        spjMessage: config.showTestdata ? cs.result.spjMessage : undefined,
+                    }
+                }))
+            }))
+        }) : null
+    }
+}
 
 function getCompileStatus(status: string): string {
     if (["System Error", "Compile Error", "No Testdata"].includes(status)) {
@@ -50,157 +87,168 @@ function getCompileStatus(status: string): string {
 }
 
 function processRoughResult(source: RoughResult, config: DisplayConfig): RoughResult {
-    const result = config.hideResult ?
-        getCompileStatus(source.result) :
-        source.result;
+    const result = config.showResult ?
+        source.result :
+        getCompileStatus(source.result);
     return {
         result: result,
-        time: config.hideUsage ? null : source.time,
-        memory: config.hideUsage ? null : source.memory,
-        score: config.hideUsage ? null : source.score
+        time: config.showUsage ? source.time : null,
+        memory: config.showUsage ? source.memory : null,
+        score: config.showUsage ? source.score : null
     };
 }
 
-const clientList: { [id: string]: DisplayConfig } = {};
+function forAllClients(ns: SocketIO.Namespace, taskId: number, exec: (socketId: string) => void): void {
+    ns.in(taskId.toString()).clients((err, clients) => {
+        if (!err) {
+            clients.forEach(client => {
+                exec(client);
+            });
+        } else {
+            winston.warn(`Error while listing socketio clients in ${taskId}`, err);
+        }
+    });
+}
+
 
 export function initializeSocketIO(s: http.Server) {
     ioInstance = socketio(s);
-    detailProgressNamespace = ioInstance.of('/detail');
-    roughProgressNamespace = ioInstance.of('/rough');
-    compileProgressNamespace = ioInstance.of('/compile');
 
-    // TODO: deduplicate the following code.
-    detailProgressNamespace.on('connection', (socket) => {
-        socket.on('join', (reqJwt, cb) => {
-            let req;
-            try {
-                req = jwt.verify(reqJwt, Cfg.token);
-                if (req.type !== 'detail') {
-                    throw new Error("Request type in token mismatch.");
+    const initializeNamespace = (name, exec: (token: any, socket: SocketIO.Socket) => Promise<any>) => {
+        const newNamespace = ioInstance.of('/' + name);
+        newNamespace.on('connection', (socket) => {
+            socket.on('disconnect', () => {
+                winston.info(`Client ${socket.id} disconnected.`);
+                delete clientDisplayConfigList[socket.id];
+                if (clientDetailProgressList[socket.id]) {
+                    delete clientDetailProgressList[socket.id];
                 }
-            } catch (err) {
-                winston.info('The client has an incorrect token.');
-                cb({
-                    ok: false,
-                    message: err.toString()
-                });
-                return;
-            }
-            const taskId = req.taskId;
-            winston.verbose(`A client trying to get detailed progress for ${taskId}.`);
-            socket.join(taskId.toString());
-            if (finishedJudgeList[taskId]) {
-                winston.debug(`Judge task #${taskId} has been finished, ${JSON.stringify(currentJudgeList[taskId])}`);
-                cb({
-                    ok: true,
-                    finished: true,
-                    result: currentJudgeList[taskId],
-                    roughResult: finishedJudgeList[taskId]
-                });
-            } else {
-                winston.debug(`Judge task #${taskId} has not been finished`);
-                cb({
+            });
+            socket.on('join', (reqJwt, cb) => {
+                winston.info(`Client ${socket.id} connected.`);
+                let req;
+                try {
+                    req = jwt.verify(reqJwt, Cfg.token);
+                    if (req.type !== name) {
+                        throw new Error("Request type in token mismatch.");
+                    }
+                } catch (err) {
+                    winston.info('The client has an incorrect token.');
+                    cb({
+                        ok: false,
+                        message: err.toString()
+                    });
+                    return;
+                }
+                const taskId = req.taskId;
+                winston.verbose(`A client trying to join ${name} namespace for ${taskId}.`);
+                socket.join(taskId.toString());
+                exec(req, socket).then(x => cb(x), err => cb({ ok: false, message: err.toString() }));
+            });
+        });
+        return newNamespace;
+    };
+
+    detailProgressNamespace = initializeNamespace('detail', async (req, socket) => {
+        const taskId = req.taskId;
+        if (finishedJudgeList[taskId]) {
+            winston.debug(`Judge task #${taskId} has been finished, ${JSON.stringify(currentJudgeList[taskId])}`);
+            return {
+                ok: true,
+                running: false,
+                finished: true,
+                result: processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[socket.id]),
+                roughResult: processRoughResult(finishedJudgeList[taskId], clientDisplayConfigList[socket.id])
+            };
+        } else {
+            winston.debug(`Judge task #${taskId} has not been finished`);
+            // If running
+            if (currentJudgeList[taskId]) {
+                clientDetailProgressList[socket.id] = {
+                    version: 0,
+                    content: processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[socket.id])
+                };
+                return {
                     ok: true,
                     finished: false,
-                    current: currentJudgeList[taskId] || { running: false }
-                });
-            }
-        });
-    });
-    roughProgressNamespace.on('connection', (socket) => {
-        socket.on('disconnect', () => {
-            delete clientList[socket.id];
-        })
-        socket.on('join', (reqJwt, cb) => {
-            let req;
-            try {
-                req = jwt.verify(reqJwt, Cfg.token);
-                if (req.type !== 'rough') {
-                    throw new Error("Permission denied");
-                }
-                clientList[socket.id] = req.displayConfig;
-            } catch (err) {
-                cb({
-                    ok: false,
-                    message: err.toString()
-                });
-                return;
-            }
-            const taskId = req.taskId;
-            socket.join(taskId.toString());
-            if (currentJudgeList[taskId]) {
-                cb({
-                    ok: true,
                     running: true,
-                    finished: false
-                });
-            } else if (finishedJudgeList[taskId]) {
-                // This is not likely to happen. If some task is processed, 
-                // The client should not process it.
-                const result = finishedJudgeList[taskId];
-                cb({
-                    ok: true,
-                    running: false,
-                    finished: true,
-                    result: processRoughResult(result, clientList[socket.id])
-                });
+                    current: clientDetailProgressList[socket.id]
+                };
             } else {
-                cb({
+                // If not running yet, the creation of clientDetailProgressList
+                // will be done in the starting procedure (createTask function).
+                return {
                     ok: true,
-                    running: false,
-                    finished: false
-                })
+                    finished: false,
+                    running: false
+                };
             }
-        });
+        }
     });
 
-    compileProgressNamespace.on('connection', (socket) => {
-        socket.on('join', (reqJwt, cb) => {
-            let req;
-            try {
-                req = jwt.verify(reqJwt, Cfg.token);
-                if (req.type !== 'compile') {
-                    throw new Error("Request type in token mismatch.");
-                }
-            } catch (err) {
-                cb({
-                    ok: false,
-                    message: err.toString()
-                });
-                return;
-            }
-            const taskId = req.taskId;
-            socket.join(taskId.toString());
-            if (compiledList[taskId]) {
-                cb({
-                    ok: true,
-                    running: false,
-                    finished: true,
-                    result: compiledList[taskId]
-                });
-            } else if (currentJudgeList[taskId]) {
-                cb({
-                    ok: true,
-                    running: true,
-                    finished: false
-                });
-            } else {
-                cb({
-                    ok: true,
-                    running: false,
-                    finished: false
-                });
-            }
-        });
+    roughProgressNamespace = initializeNamespace('rough', async (req, socket) => {
+        const taskId = req.taskId;
+        if (currentJudgeList[taskId]) {
+            return {
+                ok: true,
+                running: true,
+                finished: false
+            };
+        } else if (finishedJudgeList[taskId]) {
+            return {
+                ok: true,
+                running: false,
+                finished: true,
+                result: processRoughResult(finishedJudgeList[taskId], clientDisplayConfigList[socket.id])
+            };
+        } else {
+            return {
+                ok: true,
+                running: false,
+                finished: false
+            };
+        }
+    });
+
+    compileProgressNamespace = initializeNamespace('compile', async (req, socket) => {
+        const taskId = req.taskId;
+        if (compiledList[taskId]) {
+            return {
+                ok: true,
+                running: false,
+                finished: true,
+                result: compiledList[taskId]
+            };
+        } else if (currentJudgeList[taskId]) {
+            return {
+                ok: true,
+                running: true,
+                finished: false
+            };
+        } else {
+            return {
+                ok: true,
+                running: false,
+                finished: false
+            };
+        }
     });
 }
 
 export function createTask(taskId: number) {
     winston.debug(`Judge task #${taskId} has started`);
-    detailProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
+
+    currentJudgeList[taskId] = {};
+    forAllClients(detailProgressNamespace, taskId, (clientId) => {
+        clientDetailProgressList[clientId] = {
+            version: 0,
+            content: currentJudgeList[taskId]
+        };
+    });
+
     roughProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
+    detailProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
     compileProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
-    currentJudgeList[taskId] = { running: true, current: null };
 }
 
 export function updateCompileStatus(taskId: number, result: CompilationResult) {
@@ -214,19 +262,28 @@ export function updateCompileStatus(taskId: number, result: CompilationResult) {
 }
 
 export function updateProgress(taskId: number, data: OverallResult) {
-    winston.debug(`Updating progress for #${taskId}, data: ${JSON.stringify(data)}`);
-    const original = currentJudgeList[taskId].current;
-    const delta = diff.diff(original, data);
-    detailProgressNamespace.to(taskId.toString()).emit('update', {
-        taskId: taskId,
-        delta: delta
+    winston.verbose(`Updating progress for #${taskId}, data: ${JSON.stringify(data)}`);
+
+    currentJudgeList[taskId] = data;
+    forAllClients(detailProgressNamespace, taskId, (client) => {
+        winston.debug(`Pushing progress update to ${client}`)
+        if (clientDetailProgressList[client] && clientDisplayConfigList[client]) { // avoid race condition
+            const original = clientDetailProgressList[client].content;
+            const updated = processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[client]);
+            const version = clientDetailProgressList[taskId].version;
+            detailProgressNamespace.sockets[client].emit('update', {
+                taskId: taskId,
+                from: version,
+                to: version + 1,
+                delta: diff.diff(original, updated)
+            })
+            clientDetailProgressList[taskId].version++;
+        }
     });
-    currentJudgeList[taskId].current = data;
 }
 
 export function updateResult(taskId: number, data: OverallResult) {
-    currentJudgeList[taskId].running = false;
-    currentJudgeList[taskId].current = data;
+    currentJudgeList[taskId] = data;
 
     if (compiledList[taskId] == null) {
         if (data.error != null) {
@@ -246,19 +303,25 @@ export function updateResult(taskId: number, data: OverallResult) {
         score: finalResult.score
     };
     finishedJudgeList[taskId] = roughResult;
-    roughProgressNamespace.to(taskId.toString()).clients((err, clients) => {
-        for (const client of clients) {
-            winston.debug(`Pushing rough result to ${client}`)
-            roughProgressNamespace.sockets[client].emit('finish', {
-                taskId: taskId,
-                result: processRoughResult(finishedJudgeList[taskId], clientList[client])
-            });
-        }
+
+    forAllClients(roughProgressNamespace, taskId, (client) => {
+        winston.debug(`Pushing rough result to ${client}`)
+        roughProgressNamespace.sockets[client].emit('finish', {
+            taskId: taskId,
+            result: processRoughResult(finishedJudgeList[taskId], clientDisplayConfigList[client])
+        });
     });
-    detailProgressNamespace.to(taskId.toString()).emit('finish', {
-        taskId: taskId,
-        roughResult: finishedJudgeList[taskId],
-        result: data
+
+    forAllClients(detailProgressNamespace, taskId, (client) => {
+        if (clientDisplayConfigList[client]) { // avoid race condition
+            winston.debug(`Pushing detail result to ${client}`)
+            detailProgressNamespace.sockets[client].emit('finish', {
+                taskId: taskId,
+                result: processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[client]),
+                roughResult: processRoughResult(finishedJudgeList[taskId], clientDisplayConfigList[client])
+            });
+            delete clientDetailProgressList[client];
+        }
     });
 }
 
