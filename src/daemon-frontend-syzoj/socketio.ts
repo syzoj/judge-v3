@@ -29,7 +29,39 @@ let roughProgressNamespace: SocketIO.Namespace;
 let compileProgressNamespace: SocketIO.Namespace;
 
 const currentJudgeList: JudgeData[] = [];
-const finishedJudgeList = {};
+const finishedJudgeList: RoughResult[] = [];
+const compiledList = [];
+
+interface DisplayConfig {
+    pushType: string;
+    hideScore: boolean;
+    hideUsage: boolean;
+    hideCode: boolean;
+    hideResult: boolean;
+    hideTestcaseDetails?: boolean;
+};
+
+function getCompileStatus(status: string): string {
+    if (["System Error", "Compile Error", "No Testdata"].includes(status)) {
+        return status;
+    } else {
+        return "Submitted";
+    }
+}
+
+function processRoughResult(source: RoughResult, config: DisplayConfig): RoughResult {
+    const result = config.hideResult ?
+        getCompileStatus(source.result) :
+        source.result;
+    return {
+        result: result,
+        time: config.hideUsage ? null : source.time,
+        memory: config.hideUsage ? null : source.memory,
+        score: config.hideUsage ? null : source.score
+    };
+}
+
+const clientList: { [id: string]: DisplayConfig } = {};
 
 export function initializeSocketIO(s: http.Server) {
     ioInstance = socketio(s);
@@ -62,7 +94,7 @@ export function initializeSocketIO(s: http.Server) {
                 cb({
                     ok: true,
                     finished: true,
-                    result: currentJudgeList[taskId] && currentJudgeList[taskId].current,
+                    result: currentJudgeList[taskId],
                     roughResult: finishedJudgeList[taskId]
                 });
             } else {
@@ -76,13 +108,17 @@ export function initializeSocketIO(s: http.Server) {
         });
     });
     roughProgressNamespace.on('connection', (socket) => {
+        socket.on('disconnect', () => {
+            delete clientList[socket.id];
+        })
         socket.on('join', (reqJwt, cb) => {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
-                if (req.type !== 'rough') {
-                    throw new Error("Request type in token mismatch.");
+                if (req.displayConfig.pushType !== 'rough') {
+                    throw new Error("Permission denied");
                 }
+                clientList[socket.id] = req.displayConfig;
             } catch (err) {
                 cb({
                     ok: false,
@@ -101,11 +137,12 @@ export function initializeSocketIO(s: http.Server) {
             } else if (finishedJudgeList[taskId]) {
                 // This is not likely to happen. If some task is processed, 
                 // The client should not process it.
+                const result = finishedJudgeList[taskId];
                 cb({
                     ok: true,
                     running: false,
                     finished: true,
-                    result: finishedJudgeList[taskId]
+                    result: processRoughResult(result, clientList[socket.id])
                 });
             } else {
                 cb({
@@ -122,7 +159,7 @@ export function initializeSocketIO(s: http.Server) {
             let req;
             try {
                 req = jwt.verify(reqJwt, Cfg.token);
-                if (req.type !== 'compile') {
+                if (req.displayConfig.pushType !== 'compile') {
                     throw new Error("Request type in token mismatch.");
                 }
             } catch (err) {
@@ -134,21 +171,23 @@ export function initializeSocketIO(s: http.Server) {
             }
             const taskId = req.taskId;
             socket.join(taskId.toString());
-            if (finishedJudgeList[taskId]) {
+            if (compiledList[taskId]) {
                 cb({
                     ok: true,
-                    finished: true
+                    running: false,
+                    finished: true,
+                    result: compiledList[taskId]
                 });
-            } else if (currentJudgeList[taskId]
-                && currentJudgeList[taskId].current
-                && currentJudgeList[taskId].current.compile) {
+            } else if (currentJudgeList[taskId]) {
                 cb({
                     ok: true,
-                    finished: true
+                    running: true,
+                    finished: false
                 });
             } else {
                 cb({
                     ok: true,
+                    running: false,
                     finished: false
                 });
             }
@@ -166,12 +205,11 @@ export function createTask(taskId: number) {
 
 export function updateCompileStatus(taskId: number, result: CompilationResult) {
     winston.debug(`Updating compilation status for #${taskId}`);
-    compileProgressNamespace.to(taskId.toString()).emit('compiled', {
+
+    compiledList[taskId] = { result: result.status === TaskStatus.Done ? 'Submitted' : 'Compile Error' };
+    compileProgressNamespace.to(taskId.toString()).emit('finish', {
         taskId: taskId,
-        result: {
-            ok: result.status === TaskStatus.Done,
-            message: result.message
-        }
+        result: compiledList[taskId]
     });
 }
 
@@ -189,6 +227,17 @@ export function updateProgress(taskId: number, data: OverallResult) {
 export function updateResult(taskId: number, data: OverallResult) {
     currentJudgeList[taskId].running = false;
     currentJudgeList[taskId].current = data;
+
+    if (compiledList[taskId] == null) {
+        if (data.error != null) {
+            compiledList[taskId] = { result: "System Error" };
+            compileProgressNamespace.to(taskId.toString()).emit('finish', {
+                taskId: taskId,
+                result: compiledList[taskId]
+            });
+        }
+    }
+
     const finalResult = convertResult(taskId, data);
     const roughResult = {
         result: finalResult.statusString,
@@ -196,16 +245,21 @@ export function updateResult(taskId: number, data: OverallResult) {
         memory: finalResult.memory,
         score: finalResult.score
     };
-    roughProgressNamespace.to(taskId.toString()).emit('finish', {
-        taskId: taskId,
-        result: roughResult
+    finishedJudgeList[taskId] = roughResult;
+    roughProgressNamespace.to(taskId.toString()).clients((err, clients) => {
+        for (const client of clients) {
+            winston.debug(`Pushing rough result to ${client}`)
+            roughProgressNamespace.sockets[client].emit('finish', {
+                taskId: taskId,
+                result: processRoughResult(finishedJudgeList[taskId], clientList[client])
+            });
+        }
     });
     detailProgressNamespace.to(taskId.toString()).emit('finish', {
         taskId: taskId,
-        roughResult: roughResult,
+        roughResult: finishedJudgeList[taskId],
         result: data
     });
-    finishedJudgeList[taskId] = roughResult;
 }
 
 export function cleanupProgress(taskId: number) {
