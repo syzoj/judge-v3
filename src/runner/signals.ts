@@ -1,4 +1,5 @@
 export const signals = [
+    "", // 0
     "Hangup", // 1 
     "Interrupt", // 2 
     "Quit", // 3 
