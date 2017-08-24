@@ -189,18 +189,19 @@ export function initializeSocketIO(s: http.Server) {
 
     roughProgressNamespace = initializeNamespace('rough', async (req, socket) => {
         const taskId = req.taskId;
-        if (currentJudgeList[taskId]) {
-            return {
-                ok: true,
-                running: true,
-                finished: false
-            };
-        } else if (finishedJudgeList[taskId]) {
+        if (finishedJudgeList[taskId]) {
             return {
                 ok: true,
                 running: false,
                 finished: true,
                 result: processRoughResult(finishedJudgeList[taskId], clientDisplayConfigList[socket.id])
+            };
+        }
+        else if (currentJudgeList[taskId]) {
+            return {
+                ok: true,
+                running: true,
+                finished: false
             };
         } else {
             return {
