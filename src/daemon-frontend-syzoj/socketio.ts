@@ -273,7 +273,6 @@ export function updateProgress(taskId: string, data: OverallResult) {
             const original = clientDetailProgressList[client].content;
             const updated = processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[client]);
             const version = clientDetailProgressList[client].version;
-            winston.warn("Original: " + JSON.stringify(original) + "\n Updated: " + JSON.stringify(updated));
             detailProgressNamespace.sockets[client].emit('update', {
                 taskId: taskId,
                 from: version,
