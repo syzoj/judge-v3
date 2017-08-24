@@ -94,7 +94,7 @@ function processRoughResult(source: RoughResult, config: DisplayConfig): RoughRe
         result: result,
         time: config.showUsage ? source.time : null,
         memory: config.showUsage ? source.memory : null,
-        score: config.showUsage ? source.score : null
+        score: config.showScore ? source.score : null
     };
 }
 
