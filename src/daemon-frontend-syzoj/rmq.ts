@@ -63,7 +63,7 @@ export async function waitForProgress(handle: (result: ProgressReportData) => Pr
     });
 }
 
-export async function reportReported(taskId: number) {
+export async function reportReported(taskId: string) {
     winston.verbose('Reporting report finished: ' + taskId);
     const payload = msgpack.encode({ type: ProgressReportType.Reported, taskId: taskId });
     publicChannel.publish(rmqCommon.progressExchangeName, '', payload);

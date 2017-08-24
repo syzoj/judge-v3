@@ -8,7 +8,7 @@ export enum ProblemType {
 }
 
 export interface JudgeTaskContent {
-    taskId: number;
+    taskId: string;
     testData: string;
     type: ProblemType;
     priority: number;

@@ -140,7 +140,7 @@ export enum ProgressReportType {
 }
 
 export interface ProgressReportData {
-    taskId: number;
+    taskId: string;
     type: ProgressReportType;
     progress: OverallResult | CompilationResult;
 }

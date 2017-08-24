@@ -23,15 +23,15 @@ let roughProgressNamespace: SocketIO.Namespace;
 // can only see whether his / her submission is successfully compiled.
 let compileProgressNamespace: SocketIO.Namespace;
 
-const currentJudgeList: OverallResult[] = [];
-const finishedJudgeList: RoughResult[] = [];
+const currentJudgeList: { [taskId: string]: OverallResult } = {};
+const finishedJudgeList: { [taskId: string]: RoughResult } = {};
 const compiledList = [];
 
 // The detail progress is pushed to client in the delta form.
 // However, the messages may arrive in an unorder form.
 // In that case, the client will re-connect the server.
-const clientDetailProgressList: { [id: string]: { version: number, content: OverallResult } } = {};
-const clientDisplayConfigList: { [id: string]: DisplayConfig } = {};
+const clientDetailProgressList: { [clientId: string]: { version: number, content: OverallResult } } = {};
+const clientDisplayConfigList: { [clientId: string]: DisplayConfig } = {};
 
 interface DisplayConfig {
     showScore: boolean;
@@ -98,7 +98,7 @@ function processRoughResult(source: RoughResult, config: DisplayConfig): RoughRe
     };
 }
 
-function forAllClients(ns: SocketIO.Namespace, taskId: number, exec: (socketId: string) => void): void {
+function forAllClients(ns: SocketIO.Namespace, taskId: string, exec: (socketId: string) => void): void {
     ns.in(taskId.toString()).clients((err, clients) => {
         if (!err) {
             clients.forEach(client => {
@@ -132,6 +132,7 @@ export function initializeSocketIO(s: http.Server) {
                     if (req.type !== name) {
                         throw new Error("Request type in token mismatch.");
                     }
+                    clientDisplayConfigList[socket.id] = req.displayConfig;
                 } catch (err) {
                     winston.info('The client has an incorrect token.');
                     cb({
@@ -235,14 +236,15 @@ export function initializeSocketIO(s: http.Server) {
     });
 }
 
-export function createTask(taskId: number) {
+export function createTask(taskId: string) {
     winston.debug(`Judge task #${taskId} has started`);
 
     currentJudgeList[taskId] = {};
+    finishedJudgeList[taskId] = null;
     forAllClients(detailProgressNamespace, taskId, (clientId) => {
         clientDetailProgressList[clientId] = {
             version: 0,
-            content: currentJudgeList[taskId]
+            content: {}
         };
     });
 
@@ -251,7 +253,7 @@ export function createTask(taskId: number) {
     compileProgressNamespace.to(taskId.toString()).emit("start", { taskId: taskId });
 }
 
-export function updateCompileStatus(taskId: number, result: CompilationResult) {
+export function updateCompileStatus(taskId: string, result: CompilationResult) {
     winston.debug(`Updating compilation status for #${taskId}`);
 
     compiledList[taskId] = { result: result.status === TaskStatus.Done ? 'Submitted' : 'Compile Error' };
@@ -261,7 +263,7 @@ export function updateCompileStatus(taskId: number, result: CompilationResult) {
     });
 }
 
-export function updateProgress(taskId: number, data: OverallResult) {
+export function updateProgress(taskId: string, data: OverallResult) {
     winston.verbose(`Updating progress for #${taskId}, data: ${JSON.stringify(data)}`);
 
     currentJudgeList[taskId] = data;
@@ -270,19 +272,20 @@ export function updateProgress(taskId: number, data: OverallResult) {
         if (clientDetailProgressList[client] && clientDisplayConfigList[client]) { // avoid race condition
             const original = clientDetailProgressList[client].content;
             const updated = processOverallResult(currentJudgeList[taskId], clientDisplayConfigList[client]);
-            const version = clientDetailProgressList[taskId].version;
+            const version = clientDetailProgressList[client].version;
+            winston.warn("Original: " + JSON.stringify(original) + "\n Updated: " + JSON.stringify(updated));
             detailProgressNamespace.sockets[client].emit('update', {
                 taskId: taskId,
                 from: version,
                 to: version + 1,
                 delta: diff.diff(original, updated)
             })
-            clientDetailProgressList[taskId].version++;
+            clientDetailProgressList[client].version++;
         }
     });
 }
 
-export function updateResult(taskId: number, data: OverallResult) {
+export function updateResult(taskId: string, data: OverallResult) {
     currentJudgeList[taskId] = data;
 
     if (compiledList[taskId] == null) {
@@ -325,7 +328,7 @@ export function updateResult(taskId: number, data: OverallResult) {
     });
 }
 
-export function cleanupProgress(taskId: number) {
+export function cleanupProgress(taskId: string) {
     // Prevent race condition
     setTimeout(() => { delete currentJudgeList[taskId]; }, 10000);
 }

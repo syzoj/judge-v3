@@ -3,7 +3,7 @@ import winston = require('winston');
 import { JudgeResult, OverallResult, TestcaseResultType, TaskStatus, ErrorType, SubtaskResult, TestcaseResult, TestcaseDetails } from './interfaces';
 
 export interface JudgeResultSubmit {
-    taskId: number;
+    taskId: string;
     time: number;
     memory: number;
     score: number;
@@ -36,8 +36,8 @@ export function firstNonAC(t: TestcaseResultType[]): TestcaseResultType {
     }
 }
 
-export function convertResult(id: number, source: OverallResult): JudgeResultSubmit {
-    winston.debug(`Converting result for ${id}`, source);
+export function convertResult(taskId: string, source: OverallResult): JudgeResultSubmit {
+    winston.debug(`Converting result for ${taskId}`, source);
     let time = NaN,
         memory = NaN,
         score = NaN,
@@ -77,7 +77,7 @@ export function convertResult(id: number, source: OverallResult): JudgeResultSub
     }
 
     const result = {
-        taskId: id,
+        taskId: taskId,
         time: time,
         memory: memory,
         score: score,
@@ -85,6 +85,6 @@ export function convertResult(id: number, source: OverallResult): JudgeResultSub
         statusString: statusString,
         result: source
     };
-    winston.debug(`Result for ${id}`, result);
+    winston.debug(`Result for ${taskId}`, result);
     return result;
 }
