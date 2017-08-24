@@ -133,18 +133,18 @@ export function initializeSocketIO(s: http.Server) {
                         throw new Error("Request type in token mismatch.");
                     }
                     clientDisplayConfigList[socket.id] = req.displayConfig;
+                    const taskId = req.taskId;
+                    winston.verbose(`A client trying to join ${name} namespace for ${taskId}.`);
+                    socket.join(taskId.toString());
+                    exec(req, socket).then(x => cb(x), err => cb({ ok: false, message: err.toString() }));
                 } catch (err) {
-                    winston.info('The client has an incorrect token.');
+                    winston.info('Error while joining.');
                     cb({
                         ok: false,
                         message: err.toString()
                     });
                     return;
                 }
-                const taskId = req.taskId;
-                winston.verbose(`A client trying to join ${name} namespace for ${taskId}.`);
-                socket.join(taskId.toString());
-                exec(req, socket).then(x => cb(x), err => cb({ ok: false, message: err.toString() }));
             });
         });
         return newNamespace;
