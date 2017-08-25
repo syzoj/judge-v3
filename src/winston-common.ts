@@ -16,6 +16,6 @@ export function configureWinston(verbose: boolean) {
     if (verbose) {
         (winston as any).level = 'debug';
     } else {
-        (winston as any).level = 'warn';
+        (winston as any).level = 'info';
     }
 }
