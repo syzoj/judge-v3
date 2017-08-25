@@ -82,7 +82,7 @@ export async function runTask(task: RPCRequest, priority: number, started?: () =
     winston.debug(`Task ${correlationId} callback queue subscribed.`);
 
     channel.sendToQueue(rmqCommon.taskQueueName, msgpack.encode(task), {
-        correlationId: correlationId, replyTo: callbackQueue
+        correlationId: correlationId, replyTo: callbackQueue, priority: priority
     });
     winston.debug(`Task ${correlationId} sent.`);
 
