@@ -28,6 +28,6 @@ export async function compile(
         }
         return [fingerprint, result];
     } finally {
-        unlock();
+        await unlock();
     }
 }

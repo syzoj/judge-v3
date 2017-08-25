@@ -12,7 +12,7 @@ Bluebird.promisifyAll(redis.Multi.prototype);
 const redisClient = redis.createClient(Cfg.redis, { detect_buffers: true }) as any;
 // We use one client for now, cluster support to be added later.
 const redlock = new Redlock([redisClient], {
-    retryCount: 0,
+    retryCount: 50,
     retryDelay: 100
     // retryJitter: 100
 });
