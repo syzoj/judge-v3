@@ -35,7 +35,7 @@ async function newChannel(): Promise<amqp.Channel> {
 
 export function pushTask(task: any) {
     publicChannel.sendToQueue(rmqCommon.judgeQueueName, msgpack.encode(task), {
-        priority: task.priority
+        priority: task.content.priority
     });
 }
 
