@@ -46,7 +46,6 @@ export function convertResult(taskId: string, source: OverallResult): JudgeResul
 
     if (source.compile && source.compile.status === TaskStatus.Failed) {
         statusString = compileError;
-        score = 0;
     } else if (source.error != null) {
         done = false;
         if (source.error === ErrorType.TestDataError) {
