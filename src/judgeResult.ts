@@ -38,9 +38,9 @@ export function firstNonAC(t: TestcaseResultType[]): TestcaseResultType {
 
 export function convertResult(taskId: string, source: OverallResult): JudgeResultSubmit {
     winston.debug(`Converting result for ${taskId}`, source);
-    let time = NaN,
-        memory = NaN,
-        score = NaN,
+    let time = null,
+        memory = null,
+        score = null,
         done = true,
         statusString = null;
 
