@@ -34,7 +34,7 @@ async function newChannel(): Promise<amqp.Channel> {
 }
 
 export function pushTask(task: any) {
-    winston.info("Got task", task);
+    winston.info("Got task, pushing to queue");
     publicChannel.sendToQueue(rmqCommon.judgeQueueName, msgpack.encode(task), {
         priority: task.content.priority
     });

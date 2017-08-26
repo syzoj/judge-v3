@@ -265,7 +265,7 @@ export function updateCompileStatus(taskId: string, result: CompilationResult) {
 }
 
 export function updateProgress(taskId: string, data: OverallResult) {
-    winston.verbose(`Updating progress for #${taskId}, data: ${JSON.stringify(data)}`);
+    winston.verbose(`Updating progress for #${taskId}`);
 
     currentJudgeList[taskId] = data;
     forAllClients(detailProgressNamespace, taskId, (client) => {

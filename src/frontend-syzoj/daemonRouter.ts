@@ -26,7 +26,7 @@ taskRouter.put('/task', async (req, res) => {
         return res.sendStatus(400);
     }
     try {
-        winston.info("Got task: " + JSON.stringify(req.body));
+        winston.info("Got task: " + JSON.stringify(req.body.content.taskId));
         const task = req.body as JudgeTask;
         let extraData: Buffer = null;
         if (task.extraFileLocation != null) {

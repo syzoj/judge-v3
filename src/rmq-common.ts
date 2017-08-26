@@ -39,7 +39,7 @@ export async function waitForTask<T>(conn: amqp.Connection, queueName: string, p
     channel.prefetch(1);
     await channel.consume(queueName, (msg: amqp.Message) => {
         const data = msgpack.decode(msg.content) as T;
-        winston.verbose('Got task', data);
+        winston.verbose('Got task');
 
         handle(data).then(async () => {
             channel.ack(msg);
