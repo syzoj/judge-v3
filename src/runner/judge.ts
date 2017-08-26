@@ -46,7 +46,7 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
             score = Number(scoreString);
         const messageString = await readFileLength(pathLib.join(spjWorkingDir, messageFileName), Cfg.stderrDisplayLimit);
 
-        if ((!scoreString) || score === NaN || score < 0 || score > spjFullScore) {
+        if ((!scoreString) || isNaN(score) || score < 0 || score > spjFullScore) {
             return {
                 status: TestcaseResultType.JudgementFailed,
                 message: `Special Judge returned an unrecoginzed score: ${scoreString}.`,

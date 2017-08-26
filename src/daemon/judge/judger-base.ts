@@ -71,7 +71,7 @@ export abstract class JudgerBase {
                                 currentTaskResult.errorMessage = err.toString();
                                 winston.warn(`Task runner error: ${err.toString()} (subtask ${subtaskIndex}, case ${index})`);
                             }
-                            if (score === 0 || score === NaN) {
+                            if (score == null || isNaN(score) || score === 0) {
                                 winston.debug(`Subtask ${subtaskIndex}, case ${index}: zero, skipping the rest.`);
                                 skipped = true;
                             }
