@@ -2,9 +2,10 @@ import pathLib = require('path');
 import randomString = require('randomstring');
 import fse = require('fs-extra');
 import winston = require('winston');
+import syspipe = require('syspipe');
 
 import { SandboxStatus } from 'simple-sandbox/lib/interfaces';
-import { TestcaseResultType, StandardRunTask, StandardRunResult, AnswerSubmissionRunTask, AnswerSubmissionRunResult } from '../interfaces';
+import { TestcaseResultType, StandardRunTask, StandardRunResult, InteractionRunTask, AnswerSubmissionRunTask, AnswerSubmissionRunResult } from '../interfaces';
 import { createOrEmptyDir, tryEmptyDir } from './utils';
 import { readFileLength, tryReadFile } from '../utils';
 import { globalConfig as Cfg } from './config';
@@ -23,10 +24,22 @@ interface SpjResult {
 }
 
 const spjFullScore = 100;
+
+function getStatusByScore(score: number): TestcaseResultType {
+    switch (score) {
+        case spjFullScore:
+            return TestcaseResultType.Accepted;
+        case 0:
+            return TestcaseResultType.WrongAnswer;
+        default:
+            return TestcaseResultType.PartiallyCorrect;
+    }
+}
+
 async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResult> {
     const scoreFileName = 'score.txt';
     const messageFileName = 'message.txt';
-    const [spjRunResult] = await runProgram(spjLanguage,
+    const [resultPromise] = await runProgram(spjLanguage,
         spjBinDir,
         spjWorkingDir,
         Cfg.spjTimeLimit,
@@ -34,6 +47,7 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
         null,
         scoreFileName,
         messageFileName);
+    const spjRunResult = await resultPromise;
 
     if (spjRunResult.result.status !== SandboxStatus.OK) {
         return {
@@ -53,20 +67,8 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
                 score: 0
             };
         } else {
-            let status: TestcaseResultType;
-            switch (score) {
-                case spjFullScore:
-                    status = TestcaseResultType.Accepted;
-                    break;
-                case 0:
-                    status = TestcaseResultType.WrongAnswer;
-                    break;
-                default:
-                    status = TestcaseResultType.PartiallyCorrect;
-                    break;
-            }
             return {
-                status: status,
+                status: getStatusByScore(score),
                 message: messageString,
                 score: score / spjFullScore
             };
@@ -165,7 +167,7 @@ export async function judgeStandard(task: StandardRunTask)
         const [binaryDirectory, language, userCode] = await fetchBinary(task.userExecutableName);
 
         winston.debug("Running user program...");
-        const [runResult] = await runProgram(language,
+        const [resultPromise] = await runProgram(language,
             binaryDirectory,
             workingDir,
             task.time,
@@ -173,6 +175,7 @@ export async function judgeStandard(task: StandardRunTask)
             stdinRedirectionName,
             stdoutRedirectionName,
             tempErrFile);
+        const runResult = await resultPromise;
 
         winston.verbose((task.inputData || "<none> ") + " Run result: " + JSON.stringify(runResult));
 
@@ -250,5 +253,133 @@ export async function judgeStandard(task: StandardRunTask)
     } finally {
         tryEmptyDir(workingDir);
         tryEmptyDir(spjWorkingDir);
+    }
+}
+
+export async function judgeInteraction(task: InteractionRunTask)
+    : Promise<StandardRunResult> {
+    let pipe1 = null, pipe2 = null;
+    try {
+        const testDataPath = pathLib.join(Cfg.testDataDirectory, task.testDataName);
+        const inputFilePath = task.inputData != null ?
+            pathLib.join(testDataPath, task.inputData) : null;
+        const answerFilePath = task.answerData != null ?
+            pathLib.join(testDataPath, task.answerData) : null;
+
+        winston.debug("Creating directories...");
+        await Promise.all([createOrEmptyDir(workingDir), createOrEmptyDir(spjWorkingDir)]);
+
+        const tempErrFile = randomString.generate(10) + ".err";
+
+        if (inputFilePath != null) {
+            await fse.copy(inputFilePath,
+                pathLib.join(spjWorkingDir, 'input'));
+        }
+        if (answerFilePath != null) {
+            await fse.copy(answerFilePath,
+                pathLib.join(spjWorkingDir, 'answer'));
+        }
+
+        await fse.writeFile(pathLib.join(spjWorkingDir, 'code'), task);
+
+        winston.debug("Fetching user binary...");
+        const [userBinaryDirectory, userLanguage, userCode] = await fetchBinary(task.userExecutableName);
+        winston.debug("Fetching interactor binary...");
+        const [interactorBinaryDirectory, interactorLanguage] = await fetchBinary(task.userExecutableName);
+
+        pipe1 = syspipe.pipe(),
+            pipe2 = syspipe.pipe();
+
+        const [userProgramTaskPromise, stopUser] = await runProgram(userLanguage,
+            userBinaryDirectory,
+            workingDir,
+            task.time,
+            task.memory * 1024 * 1024,
+            pipe1.read,
+            pipe2.write,
+            tempErrFile);
+
+        const [interactorTaskPromise] = await runProgram(interactorLanguage,
+            interactorBinaryDirectory,
+            spjWorkingDir,
+            task.time * 2,
+            task.memory * 1024 * 1024,
+            pipe2.read,
+            pipe1.write,
+            tempErrFile);
+
+        const [interactorResult, runResult] = await Promise.all([interactorTaskPromise
+            .then((result) => { stopUser(); return result; }, (err) => { stopUser(); return Promise.reject(err); }), userProgramTaskPromise]);
+
+        const userError = await readFileLength(pathLib.join(workingDir, tempErrFile), Cfg.stderrDisplayLimit);
+
+        const time = Math.round(runResult.result.time / 1e6),
+            memory = runResult.result.memory / 1024;
+
+        let status: TestcaseResultType = null, message = null;
+        if (runResult.outputLimitExceeded) {
+            status = TestcaseResultType.OutputLimitExceeded;
+        } else if (runResult.result.status === SandboxStatus.TimeLimitExceeded) {
+            status = TestcaseResultType.TimeLimitExceeded;
+        } else if (runResult.result.status === SandboxStatus.MemoryLimitExceeded) {
+            status = TestcaseResultType.MemoryLimitExceeded;
+        } else if (runResult.result.status === SandboxStatus.RuntimeError) {
+            message = `Killed: ${signals[runResult.result.code]}`;
+            status = TestcaseResultType.RuntimeError;
+        } else if (runResult.result.status !== SandboxStatus.OK) {
+            status = TestcaseResultType.RuntimeError;
+        } else {
+            message = `Exited with return code ${runResult.result.code}`;
+        }
+        if (interactorResult.result.status !== SandboxStatus.OK) {
+            if (interactorResult.result.status === SandboxStatus.TimeLimitExceeded) {
+                message = 'Interactor Time Limit Exceeded. This is likely to happen if your program stuck.';
+                status = TestcaseResultType.TimeLimitExceeded;
+            } else {
+                message = `A ${SandboxStatus[interactorResult.result.status]} encountered while running interactor`;
+                status = TestcaseResultType.JudgementFailed;
+            }
+        }
+        const partialResult = {
+            time: time,
+            memory: time,
+            userOutput: null,
+            userError: userError,
+            spjMessage: await readFileLength(pathLib.join(spjWorkingDir, tempErrFile), Cfg.stderrDisplayLimit)
+        };
+
+        // If interactor exited normally
+        let score = 0;
+        if (status == null) {
+            const scoreString = await tryReadFile(spjWorkingDir + '/score.txt');
+            let score = Number(scoreString);
+            if ((!scoreString) || isNaN(score)) {
+                status = TestcaseResultType.JudgementFailed;
+                message = `Interactor returned a non-number score ${scoreString}`;
+            } else if (score === -1) {
+                score = 0;
+                status = TestcaseResultType.InvalidInteraction;
+            } else {
+                score = score;
+                status = getStatusByScore(score);
+            }
+        }
+        return Object.assign(partialResult, {
+            result: status,
+            scoringRate: score / spjFullScore
+        });
+    } finally {
+        const closePipe = async (p) => {
+            try {
+                if (p) {
+                    await fse.close(p.read);
+                    await fse.close(p.write);
+                }
+            } catch (e) { }
+        }
+        await closePipe(pipe1);
+        await closePipe(pipe2);
+        await tryEmptyDir(spjWorkingDir);
+        await tryEmptyDir(workingDir);
     }
 }

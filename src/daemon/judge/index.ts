@@ -1,13 +1,14 @@
 import winston = require('winston');
 import rmq = require('../rmq');
 
-import { JudgeTaskContent, JudgeTask, ProblemType, TestData, StandardJudgeParameter } from '../interfaces';
+import { JudgeTaskContent, JudgeTask, ProblemType, TestData, StandardJudgeParameter, InteractionJudgeParameter } from '../interfaces';
 import { StandardJudger } from './standard';
 import { JudgerBase } from './judger-base';
 import { JudgeResult, ErrorType, OverallResult, CompilationResult, TaskStatus, ProgressReportType } from '../../interfaces';
 import { readRulesFile } from '../testData';
 import { filterPath } from '../../utils';
 import { AnswerSubmissionJudger } from './submit-answer';
+import { InteractionJudger } from './interaction';
 
 export async function judge(
     task: JudgeTaskContent,
@@ -35,6 +36,8 @@ export async function judge(
         judger = new StandardJudger(testData, task.param as StandardJudgeParameter, task.priority);
     } else if (task.type === ProblemType.AnswerSubmission) {
         judger = new AnswerSubmissionJudger(testData, extraData, task.priority);
+    } else if (task.type === ProblemType.Interaction) {
+        judger = new InteractionJudger(testData, task.param as InteractionJudgeParameter, task.priority);
     } else {
         throw new Error(`Task type not supported`);
     }

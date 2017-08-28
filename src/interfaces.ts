@@ -85,6 +85,16 @@ export interface StandardRunTask {
     spjExecutableName?: string;
 }
 
+export interface InteractionRunTask {
+    testDataName: string;
+    inputData: string;
+    answerData: string;
+    time: number;
+    memory: number;
+    userExecutableName: string;
+    interactorExecutableName: string;
+}
+
 export interface AnswerSubmissionRunTask {
     testDataName: string;
     inputData: string;

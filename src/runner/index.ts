@@ -6,7 +6,7 @@ import util = require('util');
 import rmq = require('./rmq');
 import { RPCRequest, RPCTaskType } from '../interfaces';
 import { compile } from './compile';
-import { judgeStandard, judgeAnswerSubmission } from './judge';
+import { judgeStandard, judgeAnswerSubmission, judgeInteraction } from './judge';
 
 (async function () {
     winston.info("Runner starts.");
@@ -21,6 +21,8 @@ import { judgeStandard, judgeAnswerSubmission } from './judge';
             return await judgeStandard(task.task);
         } else if (task.type === RPCTaskType.RunSubmitAnswer) {
             return await judgeAnswerSubmission(task.task);
+        } else if (task.type === RPCTaskType.RunInteraction) {
+            return await judgeInteraction(task.task);
         } else {
             winston.warn("Task type unsupported");
             throw new Error(`Task type ${task.type} not supported!`);

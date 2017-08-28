@@ -57,7 +57,8 @@ export async function runProgram(language: Language,
     memory: number,
     stdinFile?: string | number,
     stdoutFile?: string | number,
-    stderrFile?: string | number): Promise<[RunResult, () => void]> {
+    stderrFile?: string | number): Promise<[Promise<RunResult>, () => void]> {
+
     await setWriteAccess(binDir, false);
     await setWriteAccess(dataDir, true);
 
@@ -77,17 +78,19 @@ export async function runProgram(language: Language,
 
     let result: SandboxResult = null;
     const sandbox = await startSandbox(sandboxParam);
-    result = await sandbox.waitForStop();
+    return [(async () => {
+        result = await sandbox.waitForStop();
 
-    let ole = false;
-    const outputSize = await getSize(binDir);
-    if (outputSize > Cfg.outputLimit) {
-        await fse.emptyDir(dataDir);
-        ole = true;
-    }
+        let ole = false;
+        const outputSize = await getSize(binDir);
+        if (outputSize > Cfg.outputLimit) {
+            await fse.emptyDir(dataDir);
+            ole = true;
+        }
 
-    return [{
-        outputLimitExceeded: ole,
-        result: result
-    }, () => { sandbox.stop(); }];
+        return {
+            outputLimitExceeded: ole,
+            result: result
+        };
+    })(), () => { sandbox.stop() }];
 }
