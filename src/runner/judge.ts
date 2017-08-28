@@ -361,7 +361,7 @@ export async function judgeInteraction(task: InteractionRunTask)
                 score = null;
                 status = TestcaseResultType.JudgementFailed;
                 message = `Interactor returned a non-number score ${scoreString}`;
-            } else if (score === -1) {
+            } else if (rawScore === -1) {
                 status = TestcaseResultType.InvalidInteraction;
             } else {
                 score = rawScore;
