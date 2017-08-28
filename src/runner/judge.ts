@@ -194,6 +194,7 @@ export async function judgeStandard(task: StandardRunTask)
             message = `Killed: ${signals[runResult.result.code]}`;
             status = TestcaseResultType.RuntimeError;
         } else if (runResult.result.status !== SandboxStatus.OK) {
+            message = "Warning: corrupt sandbox result " + util.inspect(runResult.result);
             status = TestcaseResultType.RuntimeError;
         } else {
             message = `Exited with return code ${runResult.result.code}`;
