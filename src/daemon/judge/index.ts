@@ -32,6 +32,7 @@ export async function judge(
     }
 
     let judger: JudgerBase;
+    console.log("Task typ: " + task.type);
     if (task.type === ProblemType.Standard) {
         judger = new StandardJudger(testData, task.param as StandardJudgeParameter, task.priority);
     } else if (task.type === ProblemType.AnswerSubmission) {

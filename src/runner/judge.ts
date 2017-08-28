@@ -1,8 +1,9 @@
 import pathLib = require('path');
 import randomString = require('randomstring');
+import util = require('util');
 import fse = require('fs-extra');
 import winston = require('winston');
-import syspipe = require('syspipe');
+const syspipe = require('syspipe');
 
 import { SandboxStatus } from 'simple-sandbox/lib/interfaces';
 import { TestcaseResultType, StandardRunTask, StandardRunResult, InteractionRunTask, AnswerSubmissionRunTask, AnswerSubmissionRunResult } from '../interfaces';
@@ -285,7 +286,7 @@ export async function judgeInteraction(task: InteractionRunTask)
         winston.debug("Fetching user binary...");
         const [userBinaryDirectory, userLanguage, userCode] = await fetchBinary(task.userExecutableName);
         winston.debug("Fetching interactor binary...");
-        const [interactorBinaryDirectory, interactorLanguage] = await fetchBinary(task.userExecutableName);
+        const [interactorBinaryDirectory, interactorLanguage] = await fetchBinary(task.interactorExecutableName);
 
         pipe1 = syspipe.pipe(),
             pipe2 = syspipe.pipe();
@@ -311,8 +312,6 @@ export async function judgeInteraction(task: InteractionRunTask)
         const [interactorResult, runResult] = await Promise.all([interactorTaskPromise
             .then((result) => { stopUser(); return result; }, (err) => { stopUser(); return Promise.reject(err); }), userProgramTaskPromise]);
 
-        const userError = await readFileLength(pathLib.join(workingDir, tempErrFile), Cfg.stderrDisplayLimit);
-
         const time = Math.round(runResult.result.time / 1e6),
             memory = runResult.result.memory / 1024;
 
@@ -327,6 +326,7 @@ export async function judgeInteraction(task: InteractionRunTask)
             message = `Killed: ${signals[runResult.result.code]}`;
             status = TestcaseResultType.RuntimeError;
         } else if (runResult.result.status !== SandboxStatus.OK) {
+            message = "Warning: corrupt sandbox result " + util.inspect(runResult.result);
             status = TestcaseResultType.RuntimeError;
         } else {
             message = `Exited with return code ${runResult.result.code}`;
@@ -344,7 +344,7 @@ export async function judgeInteraction(task: InteractionRunTask)
             time: time,
             memory: time,
             userOutput: null,
-            userError: userError,
+            userError: await readFileLength(pathLib.join(workingDir, tempErrFile), Cfg.stderrDisplayLimit),
             spjMessage: await readFileLength(pathLib.join(spjWorkingDir, tempErrFile), Cfg.stderrDisplayLimit)
         };
 
@@ -352,21 +352,23 @@ export async function judgeInteraction(task: InteractionRunTask)
         let score = 0;
         if (status == null) {
             const scoreString = await tryReadFile(spjWorkingDir + '/score.txt');
-            let score = Number(scoreString);
-            if ((!scoreString) || isNaN(score)) {
+            const rawScore = Number(scoreString);
+            if ((!scoreString) || isNaN(rawScore)) {
+                score = null;
                 status = TestcaseResultType.JudgementFailed;
                 message = `Interactor returned a non-number score ${scoreString}`;
             } else if (score === -1) {
-                score = 0;
                 status = TestcaseResultType.InvalidInteraction;
             } else {
-                score = score;
-                status = getStatusByScore(score);
+                score = rawScore;
+                status = getStatusByScore(rawScore);
             }
         }
+        winston.debug(`Interaction problem judge succeeded, score = ${score}`);
         return Object.assign(partialResult, {
             result: status,
-            scoringRate: score / spjFullScore
+            scoringRate: score / spjFullScore,
+            systemMessage: message
         });
     } finally {
         const closePipe = async (p) => {

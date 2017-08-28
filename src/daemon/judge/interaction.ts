@@ -26,7 +26,7 @@ export class InteractionJudger extends JudgerBase {
 
     async preprocessTestData(): Promise<void> {
         if (this.testData.interactor != null) {
-            winston.verbose("Compiling special judge.");
+            winston.verbose("Compiling interactor.");
             const [interactorExecutableName, interactorResult] = await compile(this.testData.interactor.sourceCode,
                 this.testData.interactor.language, null, this.priority);
             if (interactorResult.status !== TaskStatus.Done) {
@@ -69,9 +69,9 @@ export class InteractionJudger extends JudgerBase {
 
         // We do not have to create a InteractionRunResult
         const [inputContent, outputContent, runResult]: [string, string, StandardRunResult] = await Promise.all([
-            readFileLength(pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.input), Cfg.dataDisplayLimit),
-            readFileLength(pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.output), Cfg.dataDisplayLimit),
-            runTask({ type: RPCTaskType.RunStandard, task: task }, this.priority, started)
+            readFileLength(curCase.input ? pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.input) : null, Cfg.dataDisplayLimit),
+            readFileLength(curCase.output ? pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.output) : null, Cfg.dataDisplayLimit),
+            runTask({ type: RPCTaskType.RunInteraction, task: task }, this.priority, started)
         ]) as any;
 
         return {

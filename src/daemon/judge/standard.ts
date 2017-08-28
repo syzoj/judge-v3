@@ -70,8 +70,8 @@ export class StandardJudger extends JudgerBase {
         };
 
         const [inputContent, outputContent, runResult]: [string, string, StandardRunResult] = await Promise.all([
-            readFileLength(pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.input), Cfg.dataDisplayLimit),
-            readFileLength(pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.output), Cfg.dataDisplayLimit),
+            readFileLength(curCase.input ? pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.input) : null, Cfg.dataDisplayLimit),
+            readFileLength(curCase.output ? pathLib.join(Cfg.testDataDirectory, this.testData.name, curCase.output) : null, Cfg.dataDisplayLimit),
             runTask({ type: RPCTaskType.RunStandard, task: task }, this.priority, started)
         ]) as any;
 
