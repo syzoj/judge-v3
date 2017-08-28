@@ -326,6 +326,9 @@ export async function judgeInteraction(task: InteractionRunTask)
         } else if (runResult.result.status === SandboxStatus.RuntimeError) {
             message = `Killed: ${signals[runResult.result.code]}`;
             status = TestcaseResultType.RuntimeError;
+        } else if (runResult.result.status === SandboxStatus.Cancelled) {
+            // User program is cancelled because the interactor has already exited.
+            // We do nothing here.
         } else if (runResult.result.status !== SandboxStatus.OK) {
             message = "Warning: corrupt sandbox result " + util.inspect(runResult.result);
             status = TestcaseResultType.RuntimeError;
