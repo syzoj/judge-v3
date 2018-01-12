@@ -10,7 +10,7 @@ export const lang =  {
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
         executable: "/usr/bin/g++",
-        parameters: ["g++", sourcePath, "-o", `${outputDirectory}/a.out`, "-std=c++11", "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE"],
+        parameters: ["g++", sourcePath, "-o", `${outputDirectory}/a.out`, "-std=c++11", "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32"],
         time: 5000,
         memory: 1024 * 1024 * 1024,
         process: 10,
