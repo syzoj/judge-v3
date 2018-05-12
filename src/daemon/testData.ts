@@ -81,7 +81,7 @@ export async function readRulesFile(dataName: string): Promise<TestData> {
     const dataPath = pathLib.join(Cfg.testDataDirectory, dataName);
     let fileContent = await tryReadFile(pathLib.join(dataPath, 'data.yml'));
     if (fileContent != null) {
-        return parseYamlContent(yaml.safeLoad(fileContent), dataName);
+        return parseYamlContent(yaml.safeLoad(fileContent) as UserConfigFile, dataName);
     } else { // No data.yml
         let spj: Executable = null;
         for (const lang of languages) {
