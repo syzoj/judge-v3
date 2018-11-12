@@ -1,7 +1,7 @@
 {
     "RabbitMQUrl": "amqp://localhost/",
     "RedisUrl": "redis://127.0.0.1:6379",
-    "TestData": "/home/t123yh/sync2/syzoj/uploads/testdata",
+    "TestData": "/opt/syzoj/data/testdata",
     "Priority": 1,
     "DataDisplayLimit": 100,
     "TempDirectory": "/tmp"

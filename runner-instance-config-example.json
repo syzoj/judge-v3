@@ -1,4 +1,4 @@
 {
-    "WorkingDirectory": "/mnt/syzoj-tmp1",
+    "WorkingDirectory": "/opt/syzoj/sandbox/tmp1",
     "SandboxCgroup": "syzoj-1"
 }

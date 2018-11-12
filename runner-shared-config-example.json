@@ -1,7 +1,7 @@
 {
     "RabbitMQUrl": "amqp://localhost/",
+    "TestData": "/opt/syzoj/data/testdata",
     "RedisUrl": "redis://127.0.0.1:6379",
-    "TestData": "/home/t123yh/sync2/syzoj/uploads/testdata",
     "Priority": 1,
     "DebugMessageDisplayLimit": 5000,
     "OutputLimit": 104857600,
@@ -15,6 +15,6 @@
         "HOME=/tmp"
     ],
     "SandboxUser": "nobody",
-    "SandboxRoot": "/home/t123yh/alpine",
-    "BinaryDirectory": "/home/t123yh/syzoj-bin"
+    "SandboxRoot": "/opt/syzoj/sandbox/rootfs",
+    "BinaryDirectory": "/opt/syzoj/sandbox/bin"
 }
