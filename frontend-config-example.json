@@ -1,8 +1,0 @@
-{
-    "RabbitMQUrl": "amqp://localhost/",
-    "Listen": {
-        "host": "127.0.0.1", "port": 5284
-    },
-    "RemoteUrl": "http://127.0.0.1:5283",
-    "Token": "233"
-}
