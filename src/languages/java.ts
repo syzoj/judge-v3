@@ -37,7 +37,7 @@ export const lang =  {
         parameters: ["run"],
         time: time,
         memory: memory,
-        process: 15,
+        process: 25,
         stdin: stdinFile,
         stdout: stdoutFile,
         stderr: stderrFile,

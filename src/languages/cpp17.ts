@@ -1,7 +1,7 @@
 export const lang =  {
-    name: "python3",
-    sourceFileName: "a.py",
-    fileExtension: "py",
+    name: "cpp17",
+    sourceFileName: "a.cpp",
+    fileExtension: "cpp",
     binarySizeLimit: 5000 * 1024,
 
     // Note that these two paths are in the sandboxed environment.
@@ -9,8 +9,8 @@ export const lang =  {
         // To customize the compilation process,
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
-        executable: "/usr/bin/compile-script",
-        parameters: ["compile-script", sourcePath, outputDirectory, "pypy3 -m py_compile a.py"],
+        executable: "/usr/bin/g++",
+        parameters: ["g++", sourcePath, "-o", `${outputDirectory}/a.out`, "-std=c++17", "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32"],
         time: 5000,
         memory: 1024 * 1024 * 1024,
         process: 10,
@@ -33,10 +33,11 @@ export const lang =  {
         stdoutFile = null,
         stderrFile = null
     ) => ({
-        executable: "/usr/bin/pypy3",
-        parameters: ["pypy3", `${binaryDirectory}/a.py`],
+        executable: `${binaryDirectory}/a.out`,
+        parameters: [],
         time: time,
         memory: memory,
+        stackSize: memory,
         process: 1,
         stdin: stdinFile,
         stdout: stdoutFile,

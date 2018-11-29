@@ -13,7 +13,7 @@ export const lang =  {
         parameters: ["compile-ocaml", sourcePath, outputDirectory],
         time: 5000,
         memory: 1024 * 1024 * 1024,
-        process: 10,
+        process: 20,
         // This is just a redirection. You can simply ignore this
         // if you can specify custom location for message output
         // in the parameter of the compiler, or have redirected the compilation 
