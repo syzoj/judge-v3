@@ -12,7 +12,7 @@ export const lang =  {
         executable: "/usr/bin/valac",
         parameters: ["valac", sourcePath, "-o", `${outputDirectory}/a.out`, "-D", "ONLINE_JUDGE", "-X", "-O2"],
         time: 5000,
-        memory: 1024 * 1024 * 1024,
+        memory: 1024 * 1024 * 1024 * 2,
         process: 50,
         // This is just a redirection. You can simply ignore this
         // if you can specify custom location for message output

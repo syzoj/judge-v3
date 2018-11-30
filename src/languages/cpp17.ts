@@ -12,7 +12,7 @@ export const lang =  {
         executable: "/usr/bin/g++",
         parameters: ["g++", sourcePath, "-o", `${outputDirectory}/a.out`, "-std=c++17", "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32"],
         time: 5000,
-        memory: 1024 * 1024 * 1024,
+        memory: 1024 * 1024 * 1024 * 2,
         process: 10,
         // This is just a redirection. You can simply ignore this
         // if you can specify custom location for message output

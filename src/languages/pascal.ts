@@ -12,7 +12,7 @@ export const lang =  {
         executable: "/usr/bin/compile-pascal",
         parameters: ["compile-pascal", sourcePath, outputDirectory],
         time: 5000,
-        memory: 1024 * 1024 * 1024,
+        memory: 1024 * 1024 * 1024 * 2,
         process: 10,
         // This is just a redirection. You can simply ignore this
         // if you can specify custom location for message output
