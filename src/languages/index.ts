@@ -32,6 +32,7 @@ export const languages: Language[] = [
     require('./c'),
     require('./cpp'),
     require('./cpp11'),
+    require('./cpp17'),
     require('./csharp'),
     require('./haskell'),
     require('./java'),
