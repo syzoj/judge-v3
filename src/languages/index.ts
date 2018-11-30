@@ -33,19 +33,25 @@ export const languages: Language[] = [
     require('./cpp'),
     require('./cpp11'),
     require('./cpp17'),
+    require('./cpp11-clang'),
+    require('./cpp17-clang'),
     require('./csharp'),
     require('./haskell'),
     require('./java'),
-    require('./lua'),
-    require('./luajit'),
     require('./nodejs'),
-    require('./ocaml'),
     require('./pascal'),
     require('./python2'),
     require('./python3'),
     require('./ruby'),
+    // The following languages are dropped now since almost nobody uses them in LibreOJ.
+    // They won't be maintained and use it at your own risk!
+    /*
     require('./vala'),
+    require('./lua'),
+    require('./luajit'),
+    require('./ocaml'),
     require('./vbnet')
+    */
 ].map(f => f.lang);
 
 export function getLanguage(name: string): Language {
