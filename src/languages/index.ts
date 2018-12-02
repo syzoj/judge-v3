@@ -29,12 +29,15 @@ export interface Language {
 }
 
 export const languages: Language[] = [
-    require('./c'),
     require('./cpp'),
     require('./cpp11'),
     require('./cpp17'),
+    require('./cpp-noilinux'),
+    require('./cpp11-noilinux'),
     require('./cpp11-clang'),
     require('./cpp17-clang'),
+    require('./c'),
+    require('./c-noilinux'),
     require('./csharp'),
     require('./haskell'),
     require('./java'),
