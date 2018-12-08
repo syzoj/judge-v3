@@ -33,10 +33,27 @@ export abstract class JudgerBase {
     async judge(reportProgressResult: (p: JudgeResult) => Promise<void>): Promise<JudgeResult> {
         const results: SubtaskResult[] = this.testData.subtasks.map(t => ({
             cases: t.cases.map(j => ({
-                status: TaskStatus.Waiting
+                status: TaskStatus.Waiting,
+                result: { scoringRate: t.type !== SubtaskScoringType.Summation ? 1 : 0 } as any
             })),
             status: TaskStatus.Waiting
         }));
+
+        const updateSubtaskScore = (currentTask, currentResult) => {
+            if (currentResult.cases.some(c => c.status === TaskStatus.Failed)) {
+                // If any testcase has failed, the score is invaild.
+                currentResult.score = NaN;
+            } else {
+                currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
+            }
+        }
+
+        for (let subtaskIndex = 0; subtaskIndex < this.testData.subtasks.length; subtaskIndex++) {
+            const currentResult = results[subtaskIndex];
+            const currentTask = this.testData.subtasks[subtaskIndex];
+            updateSubtaskScore(currentTask, currentResult);
+        }
+
         const reportProgress = function () {
             reportProgressResult({ subtasks: results });
         }
@@ -46,6 +63,8 @@ export abstract class JudgerBase {
         for (let subtaskIndex = 0; subtaskIndex < this.testData.subtasks.length; subtaskIndex++) {
             const currentResult = results[subtaskIndex];
             const currentTask = this.testData.subtasks[subtaskIndex];
+
+            const updateCurrentSubtaskScore = () => updateSubtaskScore(currentTask, currentResult);
 
             judgeTasks.push((async () => {
                 // Type minimum is skippable, run one by one
@@ -75,6 +94,7 @@ export abstract class JudgerBase {
                                 winston.debug(`Subtask ${subtaskIndex}, case ${index}: zero, skipping the rest.`);
                                 skipped = true;
                             }
+                            updateCurrentSubtaskScore();
                             await reportProgress();
                         }
                     }
@@ -96,17 +116,13 @@ export abstract class JudgerBase {
                                 currentTaskResult.errorMessage = err.toString();
                                 winston.warn(`Task runner error: ${err.toString()} (subtask ${subtaskIndex}, case ${index})`);
                             }
+                            updateCurrentSubtaskScore();
                             await reportProgress();
                         })());
                     }
                     await Promise.all(caseTasks);
                 }
-                if (currentResult.cases.some(c => c.status === TaskStatus.Failed)) {
-                    // If any testcase has failed, the score is invaild.
-                    currentResult.score = NaN;
-                } else {
-                    currentResult.score = calculateSubtaskScore(currentTask.type, currentResult.cases.map(c => c.result ? c.result.scoringRate : 0)) * currentTask.score;
-                }
+                updateCurrentSubtaskScore();
                 winston.verbose(`Subtask ${subtaskIndex}, finished`);
             })());
         }
