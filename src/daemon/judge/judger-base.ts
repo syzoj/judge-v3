@@ -48,6 +48,18 @@ export abstract class JudgerBase {
             }
         }
 
+        const testcaseDetailsCache: Map<string, TestcaseDetails> = new Map();
+        const judgeTestcaseWrapper = async (curCase: TestcaseJudge, started: () => Promise<void>): Promise<TestcaseDetails> => {
+            if (testcaseDetailsCache.has(curCase.name)) {
+                return testcaseDetailsCache.get(curCase.name);
+            }
+
+            const result: TestcaseDetails = await this.judgeTestcase(curCase, started);
+            testcaseDetailsCache.set(curCase.name, result);
+
+            return result;
+        }
+
         for (let subtaskIndex = 0; subtaskIndex < this.testData.subtasks.length; subtaskIndex++) {
             const currentResult = results[subtaskIndex];
             const currentTask = this.testData.subtasks[subtaskIndex];
@@ -78,7 +90,7 @@ export abstract class JudgerBase {
                             winston.verbose(`Judging ${subtaskIndex}, case ${index}.`);
                             let score = 0;
                             try {
-                                const taskJudge = await this.judgeTestcase(currentTask.cases[index], async () => {
+                                const taskJudge = await judgeTestcaseWrapper(currentTask.cases[index], async () => {
                                     currentTaskResult.status = TaskStatus.Running;
                                     await reportProgress();
                                 });
@@ -106,7 +118,7 @@ export abstract class JudgerBase {
                             const currentTaskResult = currentResult.cases[index];
                             winston.verbose(`Judging ${subtaskIndex}, case ${index}.`);
                             try {
-                                currentTaskResult.result = await this.judgeTestcase(currentTask.cases[index], async () => {
+                                currentTaskResult.result = await judgeTestcaseWrapper(currentTask.cases[index], async () => {
                                     currentTaskResult.status = TaskStatus.Running;
                                     await reportProgress();
                                 });
