@@ -82,7 +82,7 @@ export async function runProgram(language: Language,
         result = await sandbox.waitForStop();
 
         let ole = false;
-        const outputSize = await getSize(binDir);
+        const outputSize = await getSize(dataDir);
         if (outputSize > Cfg.outputLimit) {
             await fse.emptyDir(dataDir);
             ole = true;
