@@ -53,7 +53,7 @@ async function runSpj(spjBinDir: string, spjLanguage: Language): Promise<SpjResu
     if (spjRunResult.result.status !== SandboxStatus.OK) {
         return {
             status: TestcaseResultType.JudgementFailed,
-            message: `Special Judge ${SandboxStatus[spjRunResult.result.status]} encouneted.`,
+            message: `Special Judge ${SandboxStatus[spjRunResult.result.status]} encountered.`,
             score: 0
         };
     } else {
