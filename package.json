@@ -32,6 +32,7 @@
     "request-promise": "^4.2.1",
     "simple-sandbox": "^0.3.5",
     "socket.io": "^2.0.3",
+    "socket.io-client": "^2.2.0",
     "source-map-support": "^0.4.16",
     "syspipe": "^0.1.5",
     "tar": "^3.2.1",
@@ -56,6 +57,7 @@
     "@types/request": "^2.0.3",
     "@types/request-promise": "^4.1.37",
     "@types/socket.io": "^1.4.30",
+    "@types/socket.io-client": "^1.4.32",
     "@types/uuid": "^3.4.1",
     "@types/winston": "^2.3.5",
     "typescript": "^2.5.1"

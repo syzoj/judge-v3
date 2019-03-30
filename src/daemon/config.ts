@@ -4,6 +4,8 @@ import winston = require('winston');
 import { configureWinston } from '../winston-common';
 
 export interface ConfigStructure {
+    serverUrl: string;
+    serverToken: string;
     rabbitMQ: string;
     testDataDirectory: string;
     priority: number;
@@ -25,6 +27,8 @@ function readJSON(path: string): any {
 
 const configJSON = readJSON(options["config"]);
 export const globalConfig: ConfigStructure = {
+    serverUrl: configJSON.ServerUrl,
+    serverToken: configJSON.ServerToken,
     rabbitMQ: configJSON.RabbitMQUrl,
     testDataDirectory: configJSON.TestData,
     priority: configJSON.Priority,

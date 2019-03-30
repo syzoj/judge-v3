@@ -4,23 +4,15 @@ import msgpack = require('msgpack-lite');
 import winston = require('winston');
 import util = require('util');
 import uuid = require('uuid');
-import { RPCRequest, RPCReplyType, JudgeResult, ProgressReportData, RPCReply } from '../interfaces';
+import { RPCRequest, RPCReplyType, RPCReply } from '../interfaces';
 import { cleanUp } from './cleanup';
-import { JudgeTask } from './interfaces';
 import * as rmqCommon from '../rmq-common';
 
 let amqpConnection: amqp.Connection;
-let publicChannel: amqp.Channel;
 
 export async function connect() {
     winston.verbose(`Connecting to RabbitMQ "${Cfg.rabbitMQ}"...`);
     amqpConnection = await amqp.connect(Cfg.rabbitMQ);
-    winston.debug(`Connected to RabbitMQ, asserting queues`);
-    publicChannel = await newChannel();
-    await rmqCommon.assertTaskQueue(publicChannel);
-    await rmqCommon.assertProgressReportExchange(publicChannel);
-    await rmqCommon.assertJudgeQueue(publicChannel);
-    await rmqCommon.assertResultReportQueue(publicChannel);
     amqpConnection.on('error', (err) => {
         winston.error(`RabbitMQ connection failure: ${err.toString()}`);
         cleanUp(2);
@@ -33,22 +25,6 @@ export async function disconnect() {
 
 async function newChannel(): Promise<amqp.Channel> {
     return await amqpConnection.createChannel();
-}
-
-export async function waitForTask(handle: (task: JudgeTask) => Promise<void>) {
-    await rmqCommon.waitForTask(amqpConnection, rmqCommon.judgeQueueName, Cfg.priority, () => false, handle);
-}
-
-export async function reportProgress(data: ProgressReportData) {
-    winston.verbose('Reporting progress', data);
-    const payload = msgpack.encode(data);
-    publicChannel.publish(rmqCommon.progressExchangeName, '', payload);
-}
-
-export async function reportResult(data: ProgressReportData) {
-    winston.verbose('Reporting result', data);
-    const payload = msgpack.encode(data);
-    publicChannel.sendToQueue(rmqCommon.resultReportQueueName, payload);
 }
 
 // started: Callback when this task is started.

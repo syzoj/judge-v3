@@ -1,4 +1,6 @@
 {
+    "ServerUrl": "http://127.0.0.1:5283/",
+    "ServerToken": "",
     "RabbitMQUrl": "amqp://localhost/",
     "RedisUrl": "redis://127.0.0.1:6379",
     "TestData": "/opt/syzoj/data/testdata",
