@@ -161,5 +161,10 @@ export interface RPCReply {
     error?: string;
 }
 
+export interface SerializedBuffer {
+    type: string;
+    data: Uint8Array;
+}
+
 export const redisBinarySuffix = '-bin';
 export const redisMetadataSuffix = '-meta';

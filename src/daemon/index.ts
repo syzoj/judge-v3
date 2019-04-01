@@ -6,7 +6,7 @@ import util = require('util');
 import rmq = require('./rmq');
 import remote = require('./remote');
 import { judge } from './judge';
-import { JudgeResult, ErrorType, ProgressReportType, OverallResult } from '../interfaces';
+import { JudgeResult, ErrorType, ProgressReportType, OverallResult, SerializedBuffer } from '../interfaces';
 
 (async function () {
     winston.info("Daemon starts.");
@@ -14,6 +14,11 @@ import { JudgeResult, ErrorType, ProgressReportType, OverallResult } from '../in
     await rmq.connect();
     winston.info("Start consuming the queue.");
     await remote.waitForTask(async (task) => {
+        if (task.extraData) {
+            const extraData: SerializedBuffer = task.extraData as any as SerializedBuffer;
+            if (extraData.type === "Buffer") task.extraData = new Buffer(extraData.data);
+        }
+
         let result: OverallResult;
         try {
             await remote.reportProgress({ taskId: task.content.taskId, type: ProgressReportType.Started, progress: null });
