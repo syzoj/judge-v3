@@ -1,6 +1,9 @@
 {
-    "ServerUrl": "http://127.0.0.1:5283/",
-    "ServerToken": "",
+    "ServerUrl": "127.0.0.1:3073",
+    "ServerToken": {
+    	"judger_id": "k7STX0H9lQ6bsY_R",
+	"judger_token": "iq6GvQXcVdw0TEKLEStF3iL7smDyGfj2wJC3_EaEywA="
+    },
     "RabbitMQUrl": "amqp://localhost/",
     "RedisUrl": "redis://127.0.0.1:6379",
     "TestData": "/opt/syzoj/data/testdata",

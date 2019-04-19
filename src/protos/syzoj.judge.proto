@@ -1,0 +1,57 @@
+syntax = "proto2";
+
+package syzoj.judge;
+
+import "syzoj.model.proto";
+import "syzoj.judge.legacy.proto";
+
+option go_package = "github.com/syzoj/syzoj-ng-go/model/judge";
+
+service JudgeService {
+	rpc FetchTask(FetchTaskRequest) returns (FetchTaskResponse);
+	rpc HandleTask(HandleTaskRequest) returns (HandleTaskResponse);
+}
+
+message JudgerAuth {
+	optional string judger_id = 1;
+	optional string judger_token = 2;
+}
+
+message FetchTaskRequest {
+	optional JudgerAuth auth = 1;
+}
+
+message FetchTaskResponse {
+	optional JudgeRequest task = 16;
+}
+
+message HandleTaskRequest {
+	optional JudgerAuth auth = 1;
+	optional JudgeResponse response = 2;
+}
+
+message HandleTaskResponse {
+}
+
+message JudgeRequest {
+	oneof request {
+		TraditionalJudgeRequest traditional = 16;
+	}
+}
+
+message TraditionalJudgeRequest {
+	optional string problem_id = 1;
+	optional syzoj.model.TraditionalJudgeCode code = 2;
+	optional syzoj.model.TraditionalJudgeData data = 3;
+}
+
+message JudgeResponse {
+	oneof response {
+		JudgeStringResponse string = 16;
+		syzoj.judge.legacy.ProgressReportData legacy = 17;
+	}
+}
+
+message JudgeStringResponse {
+	optional string message = 16;
+}

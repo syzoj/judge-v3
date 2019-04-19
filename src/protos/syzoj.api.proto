@@ -1,0 +1,99 @@
+syntax = "proto2";
+
+package syzoj.api;
+
+import "google/protobuf/any.proto";
+import "syzoj.model.proto";
+
+option go_package = "github.com/syzoj/syzoj-ng-go/model";
+
+// This file defines messages used in the frontend.
+// When making any changes to this file, reflect them tn the frontend too.
+
+////////// Basic messages
+message Response {
+    repeated Mutation mutations = 3;
+}
+
+message Mutation {
+    optional string path = 1;
+    optional string method = 2;
+    optional google.protobuf.Any value = 3;
+}
+
+message Error {
+    optional string error = 1;
+}
+
+message Path {
+    optional string path = 1;
+}
+
+message NotFoundPage {
+}
+
+message IndexPage {
+}
+
+message LoginPage {
+    message LoginRequest {
+        optional string user_name = 1;
+        optional string password = 2;
+    }
+}
+
+message RegisterPage {
+    message RegisterRequest {
+        optional string user_name = 1;
+        optional string password = 2;
+    }
+}
+
+message ProblemCreatePage {
+    message CreateRequest {
+        optional string problem_title = 16;
+    }
+}
+
+message ProblemViewPage {
+    optional string problem_title = 16;
+    optional syzoj.model.ProblemStatement problem_statement = 17;
+    optional syzoj.model.ProblemJudge problem_judge = 19;
+    message AddStatementRequest {
+        optional syzoj.model.ProblemStatement statement = 1;
+    }
+    message AddSourceRequest {
+    	optional syzoj.model.ProblemSource source = 1;
+    }
+    message SetPublicRequest {
+    }
+    message AddJudgeTraditionalRequest {
+    	optional syzoj.model.TraditionalJudgeData data = 1;
+    }
+    message SubmitJudgeTraditionalRequest {
+    	optional syzoj.model.TraditionalJudgeCode code = 1;
+    }
+    message SubmitJudgeTraditionalResponse {
+    }
+}
+
+message ProblemsPage {
+    repeated ProblemEntry problem_entry = 16;
+    message ProblemEntry {
+        optional string id = 1;
+        optional string problem_id = 2;
+        optional string problem_title = 3;
+    }
+    message AddProblemRequest {
+    	optional string problem_id = 1;
+    }
+}
+
+// Debug API
+message DebugAddJudgerRequest {
+}
+
+message DebugAddJudgerResponse {
+    optional string judger_id = 1;
+    optional string judger_token = 2;
+}

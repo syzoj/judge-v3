@@ -1,0 +1,55 @@
+syntax = "proto2";
+
+package syzoj.judge.legacy;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/syzoj/syzoj-ng-go/model/judge";
+
+message ProgressReportData {
+	optional string task_id = 1;
+	optional ProgressReportType type = 2;
+	optional Result progress = 3;
+}
+
+// OverallResult | CompilationResult
+message Result {
+	optional TaskStatus status = 1;
+	optional string message = 2;
+	optional string system_message = 3;
+	optional Result compile = 4;
+	optional JudgeResult judge = 5;
+}
+
+message JudgeResult {
+	repeated SubtaskResult subtasks = 1;
+}
+
+message SubtaskResult {
+	optional double score = 1;
+	optional TestcaseResult cases = 2;
+}
+
+message TestcaseResult {
+	optional TaskStatus status = 1;
+	optional google.protobuf.Struct result = 2;
+}
+
+
+enum TaskStatus {
+	Waiting = 0;
+	Running = 1;
+	Done = 2;
+	Failed = 3;
+	Skipped = 4;
+}
+
+// error from CompilationResult is ignored
+
+enum ProgressReportType {
+	Started = 1;
+	Compiled = 2;
+	Progress = 3;
+	Finished = 4;
+	Reported = 5;
+}

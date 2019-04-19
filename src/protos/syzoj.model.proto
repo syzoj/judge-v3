@@ -1,0 +1,59 @@
+syntax = "proto2";
+
+package syzoj.model;
+
+option go_package = "github.com/syzoj/syzoj-ng-go/model";
+
+// UserAuth defines all the information necessary to authenticate a user.
+message UserAuth {
+	optional bytes password_hash = 1;
+}
+
+// DeviceInfo defines the immutable part of a device's identity.
+message DeviceInfo {
+	optional string token = 1;
+	optional string user_agent = 16;
+	optional string remote_addr = 17;
+}
+
+// Problem defines a problem.
+message Problem {
+	optional string title = 1;
+	optional ProblemStatement statement = 2;
+	repeated ProblemSource source = 3;
+	optional ProblemJudge judge = 4;
+}
+
+message ProblemJudge {
+	oneof judge {
+		TraditionalJudgeData traditional = 1;
+	}
+}
+
+// ProblemSource defines the content of a problem's source.
+message ProblemSource {
+	optional string url = 1;
+	optional string site_name = 2;
+	optional string site_problem_title = 3;
+	optional string contest_name = 4;
+}
+
+message ProblemStatement {
+	oneof statement {
+	    MarkdownLatexDocument markdown = 16;
+	}
+}
+
+message MarkdownLatexDocument {
+	optional string text = 1;
+}
+
+message TraditionalJudgeData {
+	optional double time_limit = 16; // in seconds
+	optional double memory_limit = 17; // in megabytes
+}
+
+message TraditionalJudgeCode {
+	optional string language = 1;
+	optional string code = 2;
+}

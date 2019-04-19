@@ -6,6 +6,8 @@
   "author": "t123yh",
   "license": "GPL-3.0",
   "dependencies": {
+    "@grpc/grpc-js": "^0.3.6",
+    "@grpc/proto-loader": "^0.5.0",
     "amqplib": "^0.5.1",
     "ansi-to-html": "^0.6.3",
     "bluebird": "^3.5.0",
@@ -17,6 +19,7 @@
     "express": "^4.15.4",
     "fs-extra": "^3.0.1",
     "get-folder-size": "^1.0.0",
+    "grpc": "^1.20.0",
     "js-yaml": "^3.9.1",
     "jsondiffpatch": "0.2.4",
     "jsonwebtoken": "^7.4.3",

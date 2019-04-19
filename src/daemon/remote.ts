@@ -5,71 +5,71 @@ import msgpack = require('msgpack-lite');
 import winston = require('winston');
 import { ProgressReportData } from '../interfaces';
 import { JudgeTask } from './interfaces';
-import * as SocketIOClient from 'socket.io-client';
+import protos from '../protos';
+import grpc = require('grpc');
 
-let socketIOConnection: SocketIOClient.Socket;
+let grpcJudgeService: any;
 let cancelCurrentPull: Function;
 
 export async function connect() {
-    const socketIOUrl = url.resolve(Cfg.serverUrl, 'judge');
-    winston.verbose(`Connect to Socket.IO "${socketIOUrl}"...`);
-    socketIOConnection = SocketIOClient(socketIOUrl);
-
-    socketIOConnection.on('disconnect', () => {
-        winston.verbose(`Disconnected from Socket.IO "${socketIOUrl}"...`);
-        if (cancelCurrentPull) cancelCurrentPull();
-    });
+    winston.verbose(`Connect to server "${Cfg.serverUrl}"...`);
+    grpcJudgeService = new protos.syzoj.judge.JudgeService(Cfg.serverUrl, grpc.credentials.createInsecure());
+    winston.verbose('Connected');
 }
 
 export async function disconnect() {
-    socketIOConnection.close();
+    // TODO
 }
 
 export async function waitForTask(handle: (task: JudgeTask) => Promise<void>) {
-    while (true) {
-        winston.verbose('Waiting for new task...');
-        await new Promise((resolve, reject) => {
-            // This should be cancelled if socket disconnects.
-            let cancelled = false;
-            cancelCurrentPull = () => {
-                cancelled = true;
-                winston.verbose('Cancelled task polling since disconnected.');
-                resolve();
-            }
-
-            socketIOConnection.once('onTask', async (payload: Buffer, ack: Function) => {
-                // After cancelled, a new pull is emitted while socket's still disconnected.
-                if (cancelled) return;
-
-                try {
-                    winston.verbose('onTask.');
-                    await handle(msgpack.decode(payload));
-                    ack();
-                    resolve();
-                } catch (e) {
-                    reject(e);
-                }
-            });
-
-            socketIOConnection.emit('waitForTask', Cfg.serverToken, () => {
-                winston.verbose('waitForTask acked.');
-            });
-        });
-    }
+	for(;;) {
+		await waitForSingleTask(handle);
+	}
 }
 
-// Difference between result and progress:
-// The `progress' is to be handled by *all* frontend proxies and pushed to all clients.
-// The `result' is to be handled only *once*, and is to be written to the database.
+function waitForSingleTask(handle: (task: JudgeTask) => Promise<void>) {
+    winston.verbose('Waiting for new task...');
+    return new Promise((resolve, reject) => {
+        grpcJudgeService.fetchTask({ auth: Cfg.serverToken }, function(err, result) {
+            if(err) {
+                reject(err);
+            } else {
+                let v = result.task.traditional;
+	            let task: JudgeTask = {
+                    content: {
+                        taskId: "",
+                        testData: v.problem_id,
+                        type: 1,
+                        priority: 1,
+                        param: {
+                            language: v.code.language,
+                            code: v.code.code,
+                            timeLimit: v.data.timeLimit / 1000000000,
+                            memoryLimit: v.data.memoryLimit / 1024 / 1024
+                        }
+                    }
+                };
+                winston.verbose('Received task', v, task);
+	    	    handle(task).then(() => resolve()).catch((err) => reject(err));
+            }
+        });
+    });
+}
 
 export async function reportProgress(data: ProgressReportData) {
     winston.verbose('Reporting progress', data);
-    const payload = msgpack.encode(data);
-    socketIOConnection.emit('reportProgress', Cfg.serverToken, payload);
+	// TODO
 }
 
-export async function reportResult(data: ProgressReportData) {
-    winston.verbose('Reporting result', data);
-    const payload = msgpack.encode(data);
-    socketIOConnection.emit('reportResult', Cfg.serverToken, payload);
+export function reportResult(data: ProgressReportData) {
+    return new Promise((resolve, reject) => {
+        winston.verbose('Reporting result', data);
+	    grpcJudgeService.handleTask({ auth: Cfg.serverToken, response: { legacy: data }}, (err, result) => {
+            if(err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
 }

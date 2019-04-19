@@ -27,7 +27,7 @@ import { JudgeResult, ErrorType, ProgressReportType, OverallResult, SerializedBu
             }, async (progress) => {
                 const data = { taskId: task.content.taskId, type: ProgressReportType.Compiled, progress: progress };
                 await remote.reportProgress(data);
-                await remote.reportResult(data);
+                //await remote.reportResult(data);
             });
         } catch (err) {
             winston.warn(`Judge error!!! TaskId: ${task.content.taskId}`, err);
