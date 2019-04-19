@@ -2,8 +2,6 @@ syntax = "proto2";
 
 package syzoj.judge.legacy;
 
-import "google/protobuf/struct.proto";
-
 option go_package = "github.com/syzoj/syzoj-ng-go/model/judge";
 
 message ProgressReportData {
@@ -27,14 +25,31 @@ message JudgeResult {
 
 message SubtaskResult {
 	optional double score = 1;
-	optional TestcaseResult cases = 2;
+	repeated TestcaseResult cases = 2;
 }
 
 message TestcaseResult {
 	optional TaskStatus status = 1;
-	optional google.protobuf.Struct result = 2;
+	optional TestcaseDetails result = 2;
 }
 
+message TestcaseDetails {
+	optional TestcaseResultType type = 1;
+	optional double time = 2;
+	optional double memory = 3;
+	optional FileContent input = 4;
+	optional FileContent output = 5;
+	optional double scoring_rate = 6;
+	optional string user_output = 7;
+	optional string user_error = 8;
+	optional string spj_message = 9;
+	optional string system_message = 10;
+}
+
+message FileContent {
+	optional string content = 1;
+	optional string name = 2;
+}
 
 enum TaskStatus {
 	Waiting = 0;
@@ -52,4 +67,17 @@ enum ProgressReportType {
 	Progress = 3;
 	Finished = 4;
 	Reported = 5;
+}
+
+enum TestcaseResultType {
+	Accepted = 1;
+	WrongAnswer = 2;
+	PartiallyCorrect = 3;
+	MemoryLimitExceeded = 4;
+	TimeLimitExceeded = 5;
+	OutputLimitExceeded = 6;
+	FileError = 7;
+	RuntimeError = 8;
+	JudgementFailed = 9;
+	InvalidInteraction = 10;
 }

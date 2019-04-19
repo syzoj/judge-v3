@@ -6,7 +6,7 @@ let PROTO_PATH = __dirname + '/syzoj.judge.proto';
 let packageDefinition = protoLoader.loadSync(
   PROTO_PATH,
   {
-    keepCase: true,
+    keepCase: false,
     longs: String,
     enums: String,
     defaults: true,

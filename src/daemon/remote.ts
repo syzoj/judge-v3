@@ -23,7 +23,12 @@ export async function disconnect() {
 
 export async function waitForTask(handle: (task: JudgeTask) => Promise<void>) {
 	for(;;) {
-		await waitForSingleTask(handle);
+		try {
+			await waitForSingleTask(handle);
+		} catch(e) {
+			winston.error("Failed to fetch task", e);
+			await new Promise(resolve => setTimeout(resolve, 1000));
+		}
 	}
 }
 
@@ -38,14 +43,14 @@ function waitForSingleTask(handle: (task: JudgeTask) => Promise<void>) {
 	            let task: JudgeTask = {
                     content: {
                         taskId: "",
-                        testData: v.problem_id,
+                        testData: v.problemId,
                         type: 1,
                         priority: 1,
                         param: {
                             language: v.code.language,
                             code: v.code.code,
-                            timeLimit: v.data.timeLimit / 1000000000,
-                            memoryLimit: v.data.memoryLimit / 1024 / 1024
+                            timeLimit: v.data.timeLimit * 1000,
+                            memoryLimit: v.data.memoryLimit
                         }
                     }
                 };
@@ -56,20 +61,28 @@ function waitForSingleTask(handle: (task: JudgeTask) => Promise<void>) {
     });
 }
 
-export async function reportProgress(data: ProgressReportData) {
-    winston.verbose('Reporting progress', data);
-	// TODO
+let curTask: any;
+function getCurTask(): Promise<any> {
+    if(curTask)
+        return Promise.resolve(curTask);
+    curTask = grpcJudgeService.handleTask((err, resp) => {
+        if(err) {
+            winston.error("Failed to handle task", err);
+        }
+    });
+    return curTask;
 }
 
-export function reportResult(data: ProgressReportData) {
-    return new Promise((resolve, reject) => {
-        winston.verbose('Reporting result', data);
-	    grpcJudgeService.handleTask({ auth: Cfg.serverToken, response: { legacy: data }}, (err, result) => {
-            if(err) {
-                reject(err);
-            } else {
-                resolve(result);
-            }
-        });
-    });
+export async function reportProgress(data: ProgressReportData) {
+    winston.verbose('Reporting progress', data);
+    let task = await getCurTask();
+    task.write({ auth: Cfg.serverToken, response: { legacy: data }});
+}
+
+export async function reportResult(data: ProgressReportData) {
+    winston.verbose('Reporting result', data);
+    let task = await getCurTask();
+    task.write({ auth: Cfg.serverToken, response: { legacy: data }, done: true });
+    task.end();
+    curTask = null;
 }

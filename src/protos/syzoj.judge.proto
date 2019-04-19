@@ -9,7 +9,7 @@ option go_package = "github.com/syzoj/syzoj-ng-go/model/judge";
 
 service JudgeService {
 	rpc FetchTask(FetchTaskRequest) returns (FetchTaskResponse);
-	rpc HandleTask(HandleTaskRequest) returns (HandleTaskResponse);
+	rpc HandleTask(stream HandleTaskRequest) returns (HandleTaskResponse);
 }
 
 message JudgerAuth {
@@ -28,6 +28,7 @@ message FetchTaskResponse {
 message HandleTaskRequest {
 	optional JudgerAuth auth = 1;
 	optional JudgeResponse response = 2;
+	optional bool done = 3;
 }
 
 message HandleTaskResponse {
