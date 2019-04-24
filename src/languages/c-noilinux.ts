@@ -10,7 +10,7 @@ export const lang = {
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
 	executable: "/usr/bin/compile-c-noilinux",
-	parameters: ["compile-c-noilinux", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-DONLINE_JUDGE"],
+	parameters: ["compile-c-noilinux", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-DONLINE_JUDGE", "-lm"],
         time: 5000,
         memory: 1024 * 1024 * 1024 * 2,
         process: 10,

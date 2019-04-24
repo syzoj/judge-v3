@@ -10,7 +10,7 @@ export const lang =  {
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
         executable: "/usr/bin/clang-7",
-        parameters: ["clang-7", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32"],
+        parameters: ["clang-7", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32", "-lm"],
         time: 5000,
         memory: 1024 * 1024 * 1024 * 2,
         process: 10,
