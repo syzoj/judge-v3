@@ -51,7 +51,9 @@ export async function waitForTask(handle: (task: RPCRequest) => Promise<any>) {
                 winston.warn(errorMessage);
 
                 // Only retry on 'Error: The child process has exited unexpectedly.'
-                if (errorMessage.indexOf('Error: The child process has exited unexpectedly.') !== -1) {
+                //            or 'Error: The child process has reported the following error: `open(std_input.c_str(), O_RDONLY)`@../native/sandbox.cc,51: No such file or directory'.
+                if (errorMessage.indexOf('Error: The child process has exited unexpectedly.') !== -1
+                 || errorMessage.indexOf('open(std_input.c_str(), O_RDONLY)') !== -1) {
                     winston.warn('Retrying.');
                     continue;
                 }
