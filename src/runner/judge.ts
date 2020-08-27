@@ -346,7 +346,7 @@ export async function judgeInteraction(task: InteractionRunTask)
         }
         const partialResult = {
             time: time,
-            memory: time,
+            memory: memory,
             userOutput: null,
             userError: await readFileLength(pathLib.join(workingDir, tempErrFile), Cfg.stderrDisplayLimit),
             spjMessage: await readFileLength(pathLib.join(spjWorkingDir, tempErrFile), Cfg.stderrDisplayLimit)
