@@ -22,7 +22,7 @@
     "jsonwebtoken": "^7.4.3",
     "klaw": "^2.1.0",
     "lockfile": "^1.0.3",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.19",
     "msgpack-lite": "^0.1.26",
     "posix": "^4.1.1",
     "randomstring": "^1.1.5",
