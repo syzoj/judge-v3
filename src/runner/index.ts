@@ -27,5 +27,5 @@ import { judgeStandard, judgeAnswerSubmission, judgeInteraction } from './judge'
             winston.warn("Task type unsupported");
             throw new Error(`Task type ${task.type} not supported!`);
         }
-    });
+	});
 })().then(() => { winston.info("Initialization logic completed."); }, (err) => { winston.error(util.inspect(err)); process.exit(1); });

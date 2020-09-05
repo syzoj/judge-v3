@@ -6,24 +6,21 @@ import {cloneObject} from '../utils';
 import { SandboxParameter, MountInfo } from 'simple-sandbox/src/interfaces';
 import { globalConfig as Cfg } from './config';
 
-export function setWriteAccess(dirName: string, writeAccess: boolean): Promise<void> {
+export * from "../utils";
+import { emptyDir } from "../utils";
+
+import { exec, execFile } from "child_process";
+import util = require("util");
+
+const execFileAsync = (util as any).promisify(execFile);
+
+export async function setWriteAccess(dirName: string, writeAccess: boolean): Promise<void> {
     const user = posix.getpwnam(Cfg.sandbox.user);
-    const operations: Promise<void>[] = [];
-    return new Promise<void>((res, rej) => {
-        klaw(dirName).on('data', (item) => {
-            operations.push((async () => {
-                const path = item.path;
-                await fse.chmod(path, 0o755);
-                if (writeAccess) {
-                    await fse.chown(path, user.uid, user.gid);
-                } else {
-                    await fse.chown(path, process.getuid(), process.getgid());
-                }
-            })());
-        }).on('end', () => {
-            Promise.all(operations).then(() => res(), (err) => rej(err));
-        });
-    });
+    const uid = writeAccess ? user.uid : process.getuid(), gid = writeAccess ? user.gid : process.getgid();
+    await Promise.all([
+        execFileAsync("/bin/chmod", ["-R", "755", "--", dirName]),
+        execFileAsync("/bin/chown", ["-R", `${uid}:${uid}`, "--", dirName])
+    ]);
 }
 
 export async function createOrEmptyDir(path: string): Promise<void> {
@@ -34,7 +31,7 @@ export async function createOrEmptyDir(path: string): Promise<void> {
             throw err;
         }
     }
-    await fse.emptyDir(path);
+    await emptyDir(path);
 }
 
 export function sandboxize(execParam: ExecParam, mounts: MountInfo[]): SandboxParameter {
@@ -44,6 +41,6 @@ export function sandboxize(execParam: ExecParam, mounts: MountInfo[]): SandboxPa
 
 export async function tryEmptyDir(path: string) {
     try {
-        await fse.emptyDir(path);
+        await emptyDir(path);
     } catch (e) { }
 }

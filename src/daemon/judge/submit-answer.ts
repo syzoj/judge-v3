@@ -10,7 +10,7 @@ import { JudgerBase } from './judger-base';
 import { compile } from './compile';
 import { globalConfig as Cfg } from '../config';
 import { runTask } from '../rmq';
-import { readFileLength, readBufferLength } from '../../utils';
+import { remove, readFileLength, readBufferLength } from '../../utils';
 
 export class AnswerSubmissionJudger extends JudgerBase {
     submissionContent: Buffer;
@@ -96,6 +96,6 @@ export class AnswerSubmissionJudger extends JudgerBase {
     }
 
     async cleanup(): Promise<void> {
-        await fse.remove(this.tempDirectory);
+        await remove(this.tempDirectory);
     }
 }

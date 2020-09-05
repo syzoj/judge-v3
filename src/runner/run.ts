@@ -1,14 +1,12 @@
 import Bluebird = require('bluebird');
 import fse = require('fs-extra');
-import getFolderSize = require('get-folder-size');
 import pathLib = require('path');
-const getSize: any = Bluebird.promisify(getFolderSize);
 
 import { startSandbox } from 'simple-sandbox/lib/index';
 import { SandboxParameter, MountInfo, SandboxStatus, SandboxResult } from 'simple-sandbox/lib/interfaces';
 import { SandboxProcess } from 'simple-sandbox/lib/sandboxProcess';
 import { globalConfig as Cfg } from './config';
-import { createOrEmptyDir, sandboxize, setWriteAccess } from './utils';
+import { getFolderSize as getSize, emptyDir, createOrEmptyDir, sandboxize, setWriteAccess } from './utils';
 import { Language } from '../languages';
 
 export interface RunResult {
@@ -84,7 +82,7 @@ export async function runProgram(language: Language,
         let ole = false;
         const outputSize = await getSize(dataDir);
         if (outputSize > Cfg.outputLimit) {
-            await fse.emptyDir(dataDir);
+            await emptyDir(dataDir);
             ole = true;
         }
 

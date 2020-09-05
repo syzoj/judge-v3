@@ -4,6 +4,24 @@ import util = require('util');
 import sha256 = require('crypto-js/sha256');
 import nodeStream = require('stream');
 
+import { exec, execFile } from "child_process";
+
+const execAsync = (util as any).promisify(exec);
+const execFileAsync = (util as any).promisify(execFile);
+
+export async function emptyDir(dirName: string): Promise<void> {
+    await execAsync("shopt -s nullglob; /bin/rm -rf -- {.[^.],}*", { cwd: dirName, shell: "/bin/bash" });
+}
+
+export async function remove(filename: string): Promise<void> {
+    await execFileAsync("/bin/rm", ["-rf", "--", filename]);
+}
+
+export async function getFolderSize(dirName: string): Promise<number> {
+    const result = await execAsync("/usr/bin/du -sb . | /usr/bin/cut -f1", { cwd: dirName });
+    return Number(result.stdout) || 0;
+}
+
 export function codeFingerprint(code: string, language: string): string {
     return "src-" + language + sha256(code);
 }

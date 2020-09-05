@@ -2,19 +2,17 @@ import pathLib = require('path');
 import fse = require('fs-extra');
 import randomString = require('randomstring');
 import bluebird = require('bluebird');
-import getFolderSize = require('get-folder-size');
 import AnsiToHtml = require('ansi-to-html');
 
 import { CompileTask, CompilationResult, TaskStatus } from '../interfaces';
 import { globalConfig as Cfg } from './config';
-import { sandboxize, createOrEmptyDir, setWriteAccess } from './utils';
+import { remove, sandboxize, createOrEmptyDir, setWriteAccess } from './utils';
 import { Language, getLanguage } from '../languages';
 import { startSandbox } from 'simple-sandbox';
 import { SandboxParameter, MountInfo, SandboxStatus, SandboxResult } from 'simple-sandbox/lib/interfaces';
-import { readFileLength } from '../utils';
+import { getFolderSize as getSize, readFileLength } from '../utils';
 import { pushBinary } from './executable';
 
-const getSize: any = bluebird.promisify(getFolderSize);
 const convert = new AnsiToHtml({ escapeXML: true });
 
 export async function compile(task: CompileTask): Promise<CompilationResult> {
@@ -90,6 +88,6 @@ export async function compile(task: CompileTask): Promise<CompilationResult> {
         await pushBinary(task.binaryName, language, task.code, binDir);
         return { status: TaskStatus.Done };
     } finally {
-        await Promise.all([fse.remove(binDir), fse.remove(srcDir)]);
+        await Promise.all([remove(binDir), remove(srcDir)]);
     }
 }
