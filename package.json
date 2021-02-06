@@ -37,9 +37,7 @@
     "syspipe": "^0.1.5",
     "tar": "^3.2.1",
     "uuid": "^3.1.0",
-    "winston": "^2.3.1"
-  },
-  "devDependencies": {
+    "winston": "^2.3.1",
     "@types/amqplib": "^0.5.4",
     "@types/bluebird": "^3.5.8",
     "@types/body-parser": "^1.16.5",
