@@ -9,6 +9,7 @@ import { readRulesFile } from '../testData';
 import { filterPath } from '../../utils';
 import { AnswerSubmissionJudger } from './submit-answer';
 import { InteractionJudger } from './interaction';
+import { doVJudge } from './vjudge';
 
 export async function judge(
     task: JudgeTaskContent,
@@ -30,6 +31,9 @@ export async function judge(
         winston.verbose(`Test data ${task.testData} unavailable`);
         return { error: ErrorType.TestDataError, systemMessage: "Testdata unavailable." };
     }
+
+    if (testData.vjudgeInfo)
+        return doVJudge(task, extraData, testData, reportProgress, reportCompileProgress);
 
     let judger: JudgerBase;
     console.log("Task typ: " + task.type);

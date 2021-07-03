@@ -77,7 +77,7 @@ async function parseYamlContent(obj: UserConfigFile, dataName: string): Promise<
     }
 }
 
-export async function readRulesFile(dataName: string): Promise<TestData> {
+async function readRulesFileOriginal(dataName: string): Promise<TestData> {
     const dataPath = pathLib.join(Cfg.testDataDirectory, dataName);
     let fileContent = await tryReadFile(pathLib.join(dataPath, 'data.yml'));
     if (fileContent != null) {
@@ -140,4 +140,15 @@ export async function readRulesFile(dataName: string): Promise<TestData> {
             extraSourceFiles: {}
         };
     }
+}
+
+export async function readRulesFile(dataName: string): Promise<TestData> {
+    const rules = await readRulesFileOriginal(dataName);
+
+    const dataPath = pathLib.join(Cfg.testDataDirectory, dataName);
+    let fileContent = await tryReadFile(pathLib.join(dataPath, 'vjudge.yaml'));
+    if (fileContent != null)
+        rules.vjudgeInfo = yaml.safeLoad(fileContent);
+
+    return rules;
 }

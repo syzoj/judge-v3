@@ -60,12 +60,19 @@ export interface Executable {
     sourceCode: string;
 }
 
+export interface VJudgeInfo {
+    url: string;
+    id: number;
+    login: string;
+}
+
 export interface TestData {
     name: string;
     subtasks: SubtaskJudge[];
     spj?: Executable;
     interactor?: Executable;
     extraSourceFiles: { [language: string]: FileContent[] };
+    vjudgeInfo?: VJudgeInfo;
 }
 
 
