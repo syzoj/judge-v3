@@ -10,7 +10,7 @@ const execAsync = (util as any).promisify(exec);
 const execFileAsync = (util as any).promisify(execFile);
 
 export async function emptyDir(dirName: string): Promise<void> {
-    await execAsync("shopt -s nullglob; /bin/rm -rf -- {.[^.],}*", { cwd: dirName, shell: "/bin/bash" });
+    await execAsync("/bin/find . -mindepth 1 -delete", { cwd: dirName });
 }
 
 export async function remove(filename: string): Promise<void> {
