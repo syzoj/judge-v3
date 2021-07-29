@@ -10,7 +10,16 @@ const execAsync = (util as any).promisify(exec);
 const execFileAsync = (util as any).promisify(execFile);
 
 export async function emptyDir(dirName: string): Promise<void> {
-    await execAsync("/bin/find . -mindepth 1 -delete", { cwd: dirName });
+	for (let i = 0; i < 10; i++) {
+		try {
+			await execAsync("/bin/find . -mindepth 1 -delete", { cwd: dirName });
+			return;
+		} catch (e) {
+			if (i === 9) throw e;
+
+			await new Promise(r => setTimeout(r, 500));
+		}
+	}
 }
 
 export async function remove(filename: string): Promise<void> {
