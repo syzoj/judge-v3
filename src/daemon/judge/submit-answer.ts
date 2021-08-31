@@ -45,7 +45,7 @@ export class AnswerSubmissionJudger extends JudgerBase {
     }
 
     async compile(): Promise<CompilationResult> {
-        await fse.mkdir(this.tempDirectory);
+        await fse.ensureDir(this.tempDirectory);
         try {
             await decompress(this.submissionContent, this.tempDirectory);
             return { status: TaskStatus.Done };
