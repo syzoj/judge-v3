@@ -31,6 +31,7 @@ export interface ConfigStructure {
     outputLimit: number;
     binaryDirectory: string;
     dataDisplayLimit: number;
+    doNotUseX32Abi: boolean;
 }
 
 const optionDefinitions = [
@@ -66,6 +67,7 @@ export const globalConfig: ConfigStructure = {
     workingDirectory: instanceConfig.WorkingDirectory,
     binaryDirectory: sharedConfig.BinaryDirectory,
     dataDisplayLimit: sharedConfig.DataDisplayLimit,
+    doNotUseX32Abi: sharedConfig.DoNotUseX32ABI,
     sandbox: {
         chroot: sharedConfig.SandboxRoot,
         mountProc: true,
@@ -76,6 +78,11 @@ export const globalConfig: ConfigStructure = {
     },
 }
 
+function parseBoolean(s: string) {
+    if (s === 'true') return true;
+    else if (s === 'false') return false;
+    throw new Error(`Invalid boolean value: ${JSON.stringify(s)}`);
+}
 const configEnvOverrideItems = {
     SYZOJ_JUDGE_RABBITMQ_URI: [String, "rabbitMQ"],
     SYZOJ_JUDGE_TESTDATA_PATH: [String, "testDataDirectory"],
@@ -83,6 +90,7 @@ const configEnvOverrideItems = {
     SYZOJ_JUDGE_SANDBOX_ROOTFS_PATH: [String, "sandbox.chroot"],
     SYZOJ_JUDGE_WORKING_DIRECTORY: [String, "workingDirectory"],
     SYZOJ_JUDGE_BINARY_DIRECTORY: [String, "binaryDirectory"],
+    SYZOJ_JUDGE_DO_NOT_USE_X32_ABI: [parseBoolean, "doNotUseX32Abi"],
     SYZOJ_JUDGE_CGROUP: [String, "sandbox.cgroup"],
 };
 

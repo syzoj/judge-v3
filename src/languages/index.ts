@@ -17,7 +17,7 @@ export interface Language {
 
     sourceFileName: string;
     binarySizeLimit: number;
-    compile: (sourcePath: string, outputDirectory: string) => ExecParam;
+    compile: (sourcePath: string, outputDirectory: string, doNotUseX32Abi: boolean) => ExecParam;
     run: (binaryDirectory: string,
         workingDirectory: string,
         time: number,
