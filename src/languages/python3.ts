@@ -10,7 +10,7 @@ export const lang =  {
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
         executable: "/usr/bin/compile-script",
-        parameters: ["compile-script", sourcePath, outputDirectory, "pypy3 -m py_compile a.py"],
+        parameters: ["compile-script", sourcePath, outputDirectory, "python3 -m py_compile a.py"],
         time: 5000,
         memory: 1024 * 1024 * 1024,
         process: 10,
@@ -33,8 +33,8 @@ export const lang =  {
         stdoutFile = null,
         stderrFile = null
     ) => ({
-        executable: "/usr/bin/pypy3",
-        parameters: ["pypy3", `${binaryDirectory}/a.py`],
+        executable: "/usr/bin/python3",
+        parameters: ["python3", `${binaryDirectory}/a.py`],
         time: time,
         memory: memory,
         process: 1,
