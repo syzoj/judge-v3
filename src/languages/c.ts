@@ -5,12 +5,12 @@ export const lang =  {
     binarySizeLimit: 5000 * 1024,
 
     // Note that these two paths are in the sandboxed environment.
-    compile: (sourcePath, outputDirectory) => ({
+    compile: (sourcePath, outputDirectory, doNotUseX32Abi) => ({
         // To customize the compilation process,
         // write a shell script or some other stuff, 
         // and put it to your sandbox.
         executable: "/usr/bin/clang-7",
-        parameters: ["clang-7", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", "-mx32", "-lm"],
+        parameters: ["clang-7", sourcePath, "-o", `${outputDirectory}/a.out`, "-O2", "-fdiagnostics-color=always", "-DONLINE_JUDGE", !doNotUseX32Abi && "-mx32", "-lm"].filter(x => x),
         time: 5000,
         memory: 1024 * 1024 * 1024 * 2,
         process: 10,

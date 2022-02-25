@@ -282,12 +282,12 @@ export async function judgeInteraction(task: InteractionRunTask)
                 pathLib.join(spjWorkingDir, 'answer'));
         }
 
-        await fse.writeFile(pathLib.join(spjWorkingDir, 'code'), task);
-
         winston.debug("Fetching user binary...");
         const [userBinaryDirectory, userLanguage, userCode] = await fetchBinary(task.userExecutableName);
         winston.debug("Fetching interactor binary...");
         const [interactorBinaryDirectory, interactorLanguage] = await fetchBinary(task.interactorExecutableName);
+
+        await fse.writeFile(pathLib.join(spjWorkingDir, 'code'), userCode);
 
         pipe1 = syspipe.pipe(),
             pipe2 = syspipe.pipe();

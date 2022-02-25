@@ -5,7 +5,7 @@ import bluebird = require('bluebird');
 import AnsiToHtml = require('ansi-to-html');
 
 import { CompileTask, CompilationResult, TaskStatus } from '../interfaces';
-import { globalConfig as Cfg } from './config';
+import { globalConfig as Cfg, globalConfig } from './config';
 import { remove, sandboxize, createOrEmptyDir, setWriteAccess } from './utils';
 import { Language, getLanguage } from '../languages';
 import { startSandbox } from 'simple-sandbox';
@@ -40,7 +40,8 @@ export async function compile(task: CompileTask): Promise<CompilationResult> {
     const srcDir_Sandbox = '/sandbox/1';
     const binDir_Sandbox = '/sandbox/2';
     const compileConfig = language.compile(
-        `${srcDir_Sandbox}/${language.sourceFileName}`, binDir_Sandbox);
+        `${srcDir_Sandbox}/${language.sourceFileName}`, binDir_Sandbox, globalConfig.doNotUseX32Abi
+    );
 
     const sandboxParam = sandboxize(compileConfig, [{
         src: srcDir,

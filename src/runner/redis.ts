@@ -12,7 +12,7 @@ const redisClient = redis.createClient(Cfg.redis, { detect_buffers: true }) as a
 
 export async function put(name: string, content: Buffer): Promise<void> {
     winston.debug(`Putting ${name}, size = ${content.byteLength}`);
-    await redisClient.setAsync(new Buffer(name), content);
+    await redisClient.setAsync(new Buffer(name), content, 'EX', '3600');
     winston.debug(`${name} has been put.`);
 }
 

@@ -36,13 +36,14 @@ export async function pushBinary(name: string, language: Language, code: string,
 // Return value: [path, language, code]
 export async function fetchBinary(name: string): Promise<[string, Language, string]> {
     winston.verbose(`Fetching binary ${name}...`);
+    await fse.ensureDir(Cfg.binaryDirectory);
     const targetName = pathLib.join(Cfg.binaryDirectory, name);
     const lockFileName = pathLib.join(Cfg.binaryDirectory, `${name}-get.lock`);
 
     const metadata = msgpack.decode(await getRedis(name + redisMetadataSuffix)) as BinaryMetadata;
-    const isCurrentlyWorking = await fse.exists(lockFileName);
+    const isCurrentlyWorking = await fse.pathExists(lockFileName);
     // The binary already exists, no need for locking
-    if (await fse.exists(targetName) && !isCurrentlyWorking) {
+    if (await fse.pathExists(targetName) && !isCurrentlyWorking) {
         winston.debug(`Binary ${name} exists, no need for fetching...`);
     } else {
         winston.debug(`Acquiring lock ${lockFileName}...`);
@@ -52,11 +53,11 @@ export async function fetchBinary(name: string): Promise<[string, Language, stri
         let ok = false;
         try {
             winston.debug(`Got lock for ${name}.`);
-            if (await fse.exists(targetName)) {
+            if (await fse.pathExists(targetName)) {
                 winston.debug(`Work ${name} done by others...`);
             } else {
                 winston.debug(`Doing work: fetching binary for ${name} ...`);
-                await fse.mkdir(targetName);
+                await fse.ensureDir(targetName);
                 const binary = await getRedis(name + redisBinarySuffix);
                 winston.debug(`Decompressing binary (size=${binary.length})...`);
                 await new Promise((res, rej) => {

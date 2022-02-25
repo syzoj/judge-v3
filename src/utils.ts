@@ -1,5 +1,4 @@
 import * as fse from 'fs-extra';
-import * as pathLib from 'path';
 import util = require('util');
 import sha256 = require('crypto-js/sha256');
 import nodeStream = require('stream');
@@ -9,16 +8,29 @@ import { exec, execFile } from "child_process";
 const execAsync = (util as any).promisify(exec);
 const execFileAsync = (util as any).promisify(execFile);
 
+function getSystemExecutable(program: string) {
+    return fse.pathExistsSync(`/bin/${program}`) ? `/bin/${program}` : `/usr/bin/${program}`
+}
+
 export async function emptyDir(dirName: string): Promise<void> {
-    await execAsync("/bin/find . -mindepth 1 -delete", { cwd: dirName });
+	for (let i = 0; i < 10; i++) {
+		try {
+			await execAsync(`${getSystemExecutable("find")} . -mindepth 1 -delete`, { cwd: dirName });
+			return;
+		} catch (e) {
+			if (i === 9) throw e;
+
+			await new Promise(r => setTimeout(r, 500));
+		}
+	}
 }
 
 export async function remove(filename: string): Promise<void> {
-    await execFileAsync("/bin/rm", ["-rf", "--", filename]);
+    await execFileAsync(getSystemExecutable("rm"), ["-rf", "--", filename]);
 }
 
 export async function getFolderSize(dirName: string): Promise<number> {
-    const result = await execAsync("/usr/bin/du -sb . | /usr/bin/cut -f1", { cwd: dirName });
+    const result = await execAsync(`${getSystemExecutable("du")} -sb . | ${getSystemExecutable("cut")} -f1`, { cwd: dirName });
     return Number(result.stdout) || 0;
 }
 

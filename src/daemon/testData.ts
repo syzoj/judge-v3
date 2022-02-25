@@ -86,7 +86,7 @@ async function readRulesFileOriginal(dataName: string): Promise<TestData> {
         let spj: Executable = null;
         for (const lang of languages) {
             const spjName = pathLib.join(dataPath, "spj_" + lang.name + "." + lang.fileExtension);
-            if (await fse.exists(spjName)) {
+            if (await fse.pathExists(spjName)) {
                 spj = { sourceCode: await fse.readFile(spjName, 'utf8'), language: lang };
                 break;
             }
@@ -110,9 +110,9 @@ async function readRulesFileOriginal(dataName: string): Promise<TestData> {
                 const filePrefix = matchResult[1];
                 if ((await fse.stat(pathLib.join(dataPath, fileName))).isFile()) {
                     const outputPathPrefix = pathLib.join(dataPath, filePrefix);
-                    if (await fse.exists(outputPathPrefix + '.out')) {
+                    if (await fse.pathExists(outputPathPrefix + '.out')) {
                         outputFileName = filePrefix + '.out';
-                    } else if (await fse.exists(outputPathPrefix + '.ans')) {
+                    } else if (await fse.pathExists(outputPathPrefix + '.ans')) {
                         outputFileName = filePrefix + '.ans';
                     }
                 }
