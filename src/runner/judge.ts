@@ -253,8 +253,8 @@ export async function judgeStandard(task: StandardRunTask)
             }
         }
     } finally {
-        tryEmptyDir(workingDir);
-        tryEmptyDir(spjWorkingDir);
+        await tryEmptyDir(workingDir);
+        await tryEmptyDir(spjWorkingDir);
     }
 }
 
