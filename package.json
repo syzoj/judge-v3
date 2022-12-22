@@ -40,7 +40,7 @@
     "get-folder-size": "^1.0.0",
     "js-yaml": "^3.9.1",
     "jsondiffpatch": "0.2.4",
-    "jsonwebtoken": "^7.4.3",
+    "jsonwebtoken": "^9.0.0",
     "klaw": "^2.1.0",
     "lockfile": "^1.0.3",
     "lodash": "^4.17.4",
